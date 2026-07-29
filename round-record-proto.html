@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0064B4">
+<title>記録画面 試作</title>
+<style>
+  :root{
+    --brand:#0064B4;
+    --brand-press:#004E8C;
+    --brand-tint:#E2EEF8;
+    --bg:#FFFFFF;
+    --surface:#F7F9FA;
+    --line:#D9DEE3;
+    --line-strong:#8B959C;
+    --ink:#1A252D;
+    --ink-soft:#5E6D78;
+    --pending:#FFF8E3;
+    --pending-line:#E8D9A8;
+    --pending-ink:#8A6A12;
+    --alert:#C22F26;
+    --alert-tint:#FDEDEC;
+    --alert-line:#F0C4C1;
+
+    --chip-h:52px;
+    --chip-font:17px;
+    --sign-w:3;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; height:100%; }
+  body{
+    background:var(--surface);
+    color:var(--ink);
+    font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+    font-size:16px; line-height:1.6;
+    display:flex; flex-direction:column;
+    height:100dvh; overflow:hidden;
+  }
+
+  header{
+    background:var(--brand); color:#fff;
+    padding:10px 16px calc(10px + env(safe-area-inset-top)) 16px;
+    padding-top:calc(10px + env(safe-area-inset-top));
+    flex-shrink:0;
+  }
+  .hrow{ display:flex; align-items:baseline; gap:12px; }
+  .dept{ font-size:18px; font-weight:600; }
+  .prog{ margin-left:auto; font-size:15px; }
+  .remain{ font-size:13px; opacity:.95; margin-top:2px; min-height:1.4em; }
+
+  main{ flex:1; overflow-y:auto; padding:12px 16px 24px; -webkit-overflow-scrolling:touch; }
+  .grid{ display:grid; gap:14px; grid-template-columns:1fr; }
+  @media (min-width:820px){
+    .grid{ grid-template-columns:1.3fr 1fr; align-items:start; }
+  }
+
+  .card{ background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:12px 14px; }
+  .card h2{ font-size:13px; color:var(--ink-soft); margin:0 0 10px; font-weight:600; letter-spacing:.04em; }
+
+  .row{ padding:7px 0; border-radius:8px; }
+  .row.pending{ background:var(--pending); box-shadow:0 0 0 1px var(--pending-line) inset; padding-left:8px; padding-right:8px; }
+  .rlabel{ display:flex; align-items:baseline; gap:10px; margin-bottom:6px; font-size:15px; }
+  .rlabel .prev{ font-size:13px; color:var(--ink-soft); }
+  .row.pending .rlabel .prev{ color:var(--pending-ink); font-weight:600; }
+
+  .chips{ display:flex; gap:6px; }
+  .chip{
+    flex:1; height:var(--chip-h); min-width:0;
+    font-family:inherit; font-size:var(--chip-font); color:var(--ink);
+    background:var(--bg); border:1px solid var(--line-strong); border-radius:8px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; user-select:none; padding:0;
+  }
+  .chip:active{ background:var(--brand-tint); }
+  .chip.on{ background:var(--brand); border-color:var(--brand); color:#fff; font-weight:600; }
+
+  .yn{ display:flex; gap:6px; }
+  .yn .chip{ flex:1; }
+  .chip.no.on{ background:var(--brand); border-color:var(--brand); }
+  .chip.yes.on{ background:var(--alert); border-color:var(--alert); }
+
+  .over{ display:none; margin-top:8px; align-items:center; gap:8px; }
+  .over.show{ display:flex; }
+  .over input{
+    width:110px; height:var(--chip-h); font-family:inherit; font-size:var(--chip-font);
+    text-align:center; border:1px solid var(--line-strong); border-radius:8px; color:var(--ink);
+  }
+  .detail{ display:none; margin-top:8px; }
+  .detail.show{ display:block; }
+
+  textarea{
+    width:100%; font-family:inherit; font-size:16px; color:var(--ink);
+    border:1px solid var(--line-strong); border-radius:8px; padding:10px;
+    resize:vertical; min-height:84px; line-height:1.6;
+  }
+  .detail textarea{ min-height:60px; background:var(--alert-tint); border-color:var(--alert-line); }
+
+  .signwrap{ position:relative; }
+  #sign{
+    width:100%; height:190px; display:block; touch-action:none;
+    background:var(--bg); border:1px solid var(--line-strong); border-radius:8px;
+  }
+  .signhint{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:var(--ink-soft); font-size:14px; pointer-events:none;
+  }
+  .signhint.hide{ display:none; }
+  .signbar{ display:flex; align-items:center; gap:10px; margin-top:8px; font-size:12px; color:var(--ink-soft); }
+  .signbar button{ font-family:inherit; font-size:13px; padding:8px 14px; border:1px solid var(--line-strong); background:var(--bg); border-radius:8px; color:var(--ink); }
+
+  footer{
+    flex-shrink:0; background:var(--bg); border-top:1px solid var(--line);
+    padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+    display:flex; align-items:center; gap:12px;
+  }
+  footer .next{
+    margin-left:auto; font-family:inherit; font-size:16px; font-weight:600;
+    background:var(--brand); color:#fff; border:none; border-radius:8px; padding:12px 22px;
+  }
+  footer .next:disabled{ background:var(--line-strong); }
+  .tune{ font-family:inherit; font-size:13px; padding:9px 14px; border:1px solid var(--line-strong); background:var(--bg); border-radius:8px; color:var(--ink); }
+
+  #panel{
+    display:none; flex-shrink:0; background:var(--bg); border-top:1px solid var(--line);
+    padding:12px 16px; font-size:13px;
+  }
+  #panel.show{ display:block; }
+  #panel .prow{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  #panel .prow label{ width:120px; color:var(--ink-soft); }
+  #panel input[type=range]{ flex:1; }
+  #panel .val{ width:56px; text-align:right; font-variant-numeric:tabular-nums; }
+  #panel .note{ color:var(--ink-soft); font-size:11.5px; line-height:1.6; margin-top:6px; }
+  .swatches{ display:flex; gap:6px; }
+  .swatch{ width:38px; height:30px; border:1px solid var(--line-strong); border-radius:6px; cursor:pointer; }
+  .swatch.on{ box-shadow:0 0 0 2px var(--brand); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hrow">
+    <span class="dept" id="dept">3階東病棟</span>
+    <span class="prog" id="prog">0 / 8</span>
+  </div>
+  <div class="remain" id="remain"></div>
+</header>
+
+<main>
+  <div class="grid">
+    <div>
+      <div class="card" style="margin-bottom:14px;">
+        <h2>菌の人数</h2>
+        <div id="organisms"></div>
+      </div>
+      <div class="card">
+        <h2>インシデント</h2>
+        <div id="incidents"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:14px;">
+        <h2>備考</h2>
+        <textarea id="note" placeholder="気づいたことを入力"></textarea>
+      </div>
+      <div class="card">
+        <h2>確認サイン</h2>
+        <div class="signwrap">
+          <svg id="sign" xmlns="http://www.w3.org/2000/svg"></svg>
+          <div class="signhint" id="signhint">ここに署名</div>
+        </div>
+        <div class="signbar">
+          <button type="button" id="signclear">消す</button>
+          <span id="signinfo">未記入</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="panel">
+  <div class="prow">
+    <label for="p-chip">チップの高さ</label>
+    <input type="range" id="p-chip" min="36" max="80" step="2" value="52">
+    <span class="val" id="v-chip">52px</span>
+  </div>
+  <div class="prow">
+    <label for="p-font">文字の大きさ</label>
+    <input type="range" id="p-font" min="13" max="24" step="1" value="17">
+    <span class="val" id="v-font">17px</span>
+  </div>
+  <div class="prow">
+    <label for="p-sign">署名の線の太さ</label>
+    <input type="range" id="p-sign" min="1" max="8" step="0.5" value="3">
+    <span class="val" id="v-sign">3.0</span>
+  </div>
+  <div class="prow">
+    <label>未入力の色</label>
+    <div class="swatches" id="swatches"></div>
+    <span class="val" id="v-pending"></span>
+  </div>
+  <div class="note" id="pnote"></div>
+</div>
+
+<footer>
+  <button type="button" class="tune" id="tune">調整</button>
+  <button type="button" class="next" id="next" disabled>次の部署へ</button>
+</footer>
+
+<script>
+"use strict";
+
+var CONFIG = {
+  dept: "3階東病棟",
+  chips: { values:[0,1,2,3,4], overflowLabel:"5+", overflowMin:5 },
+  organisms: [
+    { id:"mrsa",     label:"MRSA",             prev:3 },
+    { id:"mdrp",     label:"MDRP（2剤耐性）",   prev:0 },
+    { id:"esbl",     label:"ESBL",             prev:1 },
+    { id:"cd",       label:"CD",               prev:0 },
+    { id:"cre3",     label:"CRE（3剤耐性）",    prev:0 },
+    { id:"cre_mepm", label:"CRE（メロペネム）", prev:2 }
+  ],
+  incidents: [
+    { id:"needlestick", label:"針刺し" },
+    { id:"exposure",    label:"体液曝露" }
+  ]
+};
+
+var state = { organisms:{}, incidents:{}, note:"", strokes:[] };
+
+function el(tag, cls, text){
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+/* ---------- 菌の行 ---------- */
+function buildOrganisms(){
+  var host = document.getElementById("organisms");
+  CONFIG.organisms.forEach(function(o){
+    var row = el("div", "row pending");
+    row.dataset.id = o.id;
+
+    var lab = el("div", "rlabel");
+    lab.appendChild(el("span", null, o.label));
+    var prev = el("span", "prev", "前回 " + o.prev);
+    lab.appendChild(prev);
+    row.appendChild(lab);
+
+    var chips = el("div", "chips");
+    CONFIG.chips.values.forEach(function(v){
+      var b = el("button", "chip", String(v));
+      b.type = "button";
+      b.addEventListener("click", function(){ setOrganism(o.id, v, row); });
+      chips.appendChild(b);
+    });
+    var over = el("button", "chip", CONFIG.chips.overflowLabel);
+    over.type = "button";
+    over.addEventListener("click", function(){ openOver(o.id, row); });
+    chips.appendChild(over);
+    row.appendChild(chips);
+
+    var ov = el("div", "over");
+    var inp = document.createElement("input");
+    inp.type = "number"; inp.inputMode = "numeric";
+    inp.min = String(CONFIG.chips.overflowMin);
+    inp.placeholder = CONFIG.chips.overflowMin + "以上";
+    inp.addEventListener("input", function(){
+      var n = parseInt(inp.value, 10);
+      if (!isNaN(n) && n >= CONFIG.chips.overflowMin) setOrganism(o.id, n, row, true);
+    });
+    ov.appendChild(inp);
+    ov.appendChild(el("span", null, "人"));
+    row.appendChild(ov);
+
+    host.appendChild(row);
+  });
+}
+
+function setOrganism(id, value, row, keepOver){
+  state.organisms[id] = value;
+  var chips = row.querySelectorAll(".chips .chip");
+  var vals = CONFIG.chips.values;
+  for (var i = 0; i < chips.length; i++){
+    var isOver = (i === vals.length);
+    var on = isOver ? (value >= CONFIG.chips.overflowMin) : (vals[i] === value);
+    chips[i].classList.toggle("on", on);
+  }
+  if (!keepOver && value < CONFIG.chips.overflowMin){
+    row.querySelector(".over").classList.remove("show");
+    row.querySelector(".over input").value = "";
+  }
+  row.classList.remove("pending");
+  update();
+}
+
+function openOver(id, row){
+  row.querySelector(".over").classList.add("show");
+  var chips = row.querySelectorAll(".chips .chip");
+  for (var i = 0; i < chips.length; i++) chips[i].classList.toggle("on", i === CONFIG.chips.values.length);
+  row.querySelector(".over input").focus();
+}
+
+/* ---------- インシデント ---------- */
+function buildIncidents(){
+  var host = document.getElementById("incidents");
+  CONFIG.incidents.forEach(function(inc){
+    var row = el("div", "row");
+    row.appendChild(el("div", "rlabel", inc.label));
+
+    var yn = el("div", "yn");
+    var no = el("button", "chip no on", "無");
+    var yes = el("button", "chip yes", "有");
+    no.type = "button"; yes.type = "button";
+    yn.appendChild(no); yn.appendChild(yes);
+    row.appendChild(yn);
+
+    var det = el("div", "detail");
+    var ta = document.createElement("textarea");
+    ta.placeholder = "いつ・誰が・何が起きたか";
+    det.appendChild(ta);
+    row.appendChild(det);
+
+    state.incidents[inc.id] = { has:false, detail:"" };
+
+    no.addEventListener("click", function(){
+      state.incidents[inc.id].has = false;
+      no.classList.add("on"); yes.classList.remove("on");
+      det.classList.remove("show");
+      update();
+    });
+    yes.addEventListener("click", function(){
+      state.incidents[inc.id].has = true;
+      yes.classList.add("on"); no.classList.remove("on");
+      det.classList.add("show");
+      ta.focus();
+      update();
+    });
+    ta.addEventListener("input", function(){ state.incidents[inc.id].detail = ta.value; });
+
+    host.appendChild(row);
+  });
+}
+
+/* ---------- 署名 ---------- */
+var svg = document.getElementById("sign");
+var hint = document.getElementById("signhint");
+var drawing = null;
+
+function svgPoint(e){
+  var r = svg.getBoundingClientRect();
+  return [Math.round(e.clientX - r.left), Math.round(e.clientY - r.top)];
+}
+function pathData(pts){
+  if (!pts.length) return "";
+  var d = "M" + pts[0][0] + " " + pts[0][1];
+  for (var i = 1; i < pts.length; i++) d += "L" + pts[i][0] + " " + pts[i][1];
+  return d;
+}
+function strokeWidth(){
+  return getComputedStyle(document.documentElement).getPropertyValue("--sign-w").trim() || "3";
+}
+svg.addEventListener("pointerdown", function(e){
+  e.preventDefault();
+  svg.setPointerCapture(e.pointerId);
+  var p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  p.setAttribute("fill", "none");
+  p.setAttribute("stroke", "#1A252D");
+  p.setAttribute("stroke-width", strokeWidth());
+  p.setAttribute("stroke-linecap", "round");
+  p.setAttribute("stroke-linejoin", "round");
+  svg.appendChild(p);
+  drawing = { pts:[svgPoint(e)], node:p };
+  state.strokes.push(drawing);
+  hint.classList.add("hide");
+});
+svg.addEventListener("pointermove", function(e){
+  if (!drawing) return;
+  e.preventDefault();
+  var p = svgPoint(e);
+  var last = drawing.pts[drawing.pts.length - 1];
+  if (Math.abs(p[0]-last[0]) + Math.abs(p[1]-last[1]) < 2) return;
+  drawing.pts.push(p);
+  drawing.node.setAttribute("d", pathData(drawing.pts));
+});
+function endStroke(){
+  if (!drawing) return;
+  if (drawing.pts.length === 1){
+    drawing.pts.push([drawing.pts[0][0] + 1, drawing.pts[0][1]]);
+    drawing.node.setAttribute("d", pathData(drawing.pts));
+  }
+  drawing = null;
+  update();
+}
+svg.addEventListener("pointerup", endStroke);
+svg.addEventListener("pointercancel", endStroke);
+svg.addEventListener("pointerleave", endStroke);
+
+document.getElementById("signclear").addEventListener("click", function(){
+  state.strokes = [];
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  hint.classList.remove("hide");
+  update();
+});
+
+function signSvgText(){
+  if (!state.strokes.length) return "";
+  var r = svg.getBoundingClientRect();
+  var w = Math.round(r.width), h = Math.round(r.height);
+  var body = state.strokes.map(function(s){
+    return '<path d="' + pathData(s.pts) + '"/>';
+  }).join("");
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + w + ' ' + h + '">' +
+         '<g fill="none" stroke="#1A252D" stroke-width="' + strokeWidth() +
+         '" stroke-linecap="round" stroke-linejoin="round">' + body + '</g></svg>';
+}
+
+/* ---------- 進捗 ---------- */
+function update(){
+  var done = 0, remain = [];
+  CONFIG.organisms.forEach(function(o){
+    if (state.organisms[o.id] !== undefined) done++;
+    else remain.push(o.label.replace(/（.*/, ""));
+  });
+  var total = CONFIG.organisms.length + CONFIG.incidents.length;
+  done += CONFIG.incidents.length;
+
+  document.getElementById("prog").textContent = done + " / " + total;
+  document.getElementById("remain").textContent = remain.length ? "未入力: " + remain.join("、") : "全項目 入力済み";
+
+  var signed = state.strokes.length > 0;
+  var info = document.getElementById("signinfo");
+  if (signed){
+    var bytes = new TextEncoder().encode(signSvgText()).length;
+    info.textContent = state.strokes.length + "画 / " + (bytes/1024).toFixed(1) + " KB";
+  } else {
+    info.textContent = "未記入";
+  }
+  document.getElementById("next").disabled = !(remain.length === 0 && signed);
+}
+
+/* ---------- 調整パネル ---------- */
+var PENDING_COLORS = ["#FFF8E3", "#FFF3D0", "#FFEBB8", "#FFE29E"];
+function buildPanel(){
+  var root = document.documentElement;
+
+  function bind(rangeId, valId, cssVar, suffix, fmt){
+    var r = document.getElementById(rangeId), v = document.getElementById(valId);
+    function apply(){
+      root.style.setProperty(cssVar, fmt ? fmt(r.value) : r.value + suffix);
+      v.textContent = fmt ? fmt(r.value) : r.value + suffix;
+      note();
+    }
+    r.addEventListener("input", apply);
+    apply();
+  }
+  bind("p-chip", "v-chip", "--chip-h", "px");
+  bind("p-font", "v-font", "--chip-font", "px");
+  bind("p-sign", "v-sign", "--sign-w", "", function(x){ return parseFloat(x).toFixed(1); });
+
+  var sw = document.getElementById("swatches");
+  PENDING_COLORS.forEach(function(c, i){
+    var d = el("div", "swatch" + (i === 0 ? " on" : ""));
+    d.style.background = c;
+    d.title = c;
+    d.addEventListener("click", function(){
+      root.style.setProperty("--pending", c);
+      Array.prototype.forEach.call(sw.children, function(x){ x.classList.remove("on"); });
+      d.classList.add("on");
+      document.getElementById("v-pending").textContent = c;
+      note();
+    });
+    sw.appendChild(d);
+  });
+  document.getElementById("v-pending").textContent = PENDING_COLORS[0];
+
+  function note(){
+    var cs = getComputedStyle(root);
+    var chip = parseInt(cs.getPropertyValue("--chip-h"), 10);
+    var mm = (chip * 25.4 / 96).toFixed(1);
+    document.getElementById("pnote").textContent =
+      "チップの高さ " + chip + "px ≒ " + mm + "mm。" +
+      "指の操作では 44px(約11.6mm)以上が目安とされています。" +
+      "画面幅 " + window.innerWidth + "px / " +
+      (window.innerWidth >= 820 ? "2列（横向き）" : "1列（縦向き）");
+  }
+  window.addEventListener("resize", note);
+  document.getElementById("tune").addEventListener("click", function(){
+    document.getElementById("panel").classList.toggle("show");
+    note();
+  });
+  note();
+}
+
+document.getElementById("note").addEventListener("input", function(){ state.note = this.value; });
+document.getElementById("next").addEventListener("click", function(){
+  alert("試作のためここまでです。\n\n署名: " + (new TextEncoder().encode(signSvgText()).length) + " バイト");
+});
+document.getElementById("dept").textContent = CONFIG.dept;
+
+buildOrganisms();
+buildIncidents();
+buildPanel();
+update();
+</script>
+</body>
+</html>
