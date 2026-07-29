@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0064B4">
-<title>記録画面 試作 v2</title>
+<title>記録画面 試作 v3</title>
 <style>
   :root{
     --brand:#0064B4; --brand-press:#004E8C; --brand-tint:#E2EEF8;
@@ -24,11 +24,11 @@
     display:flex; flex-direction:column; height:100dvh; overflow:hidden;
   }
 
-  header{ background:var(--brand); color:#fff; padding:calc(8px + env(safe-area-inset-top)) 16px 8px; flex-shrink:0; }
+  header{ background:var(--brand); color:#fff; padding:calc(7px + env(safe-area-inset-top)) 16px 7px; flex-shrink:0; }
   .hrow{ display:flex; align-items:baseline; gap:12px; }
   .dept{ font-size:18px; font-weight:600; }
-  .prog{ margin-left:auto; font-size:15px; }
-  .remain{ font-size:12.5px; margin-top:1px; min-height:1.3em; }
+  .prog{ margin-left:auto; font-size:15px; font-variant-numeric:tabular-nums; }
+  .rounders{ font-size:12.5px; margin-top:1px; min-height:1.3em; opacity:.95; }
 
   main{ flex:1; overflow-y:auto; padding:10px 14px 14px; -webkit-overflow-scrolling:touch; }
   .grid{ display:grid; gap:10px; grid-template-columns:1fr; }
@@ -44,6 +44,7 @@
   .rlabel{ display:flex; align-items:baseline; gap:8px; font-size:14px; margin-bottom:4px; }
   .rlabel .prev{ font-size:12.5px; color:var(--ink-soft); }
   .row.pending .rlabel .prev{ color:var(--pending-ink); font-weight:600; }
+
   .chips{ display:flex; gap:5px; }
   .chip{
     flex:1; height:var(--chip-h); min-width:0; font-family:inherit;
@@ -55,19 +56,27 @@
   .chip.on{ background:var(--brand); border-color:var(--brand); color:#fff; font-weight:600; }
   .chip.yes.on{ background:var(--alert); border-color:var(--alert); }
 
+  .over{ display:none; gap:8px; align-items:center; }
+  .over.show{ display:flex; }
+  .over .back{ flex:0 0 auto; padding:0 14px; }
+  .over input{ width:110px; height:var(--chip-h); font-family:inherit; font-size:var(--chip-font);
+    text-align:center; border:1px solid var(--brand); border-radius:8px; color:var(--ink); }
+  .over .unit{ font-size:14px; color:var(--ink-soft); }
+
   @media (min-width:900px){
     .row{ display:flex; align-items:center; gap:10px; }
-    .rlabel{ width:170px; flex-shrink:0; margin-bottom:0; display:block; }
-    .rlabel .prev{ margin-left:6px; }
-    .chips{ flex:1; }
+    .rlabel{ width:132px; flex-shrink:0; margin-bottom:0; display:block; line-height:1.35; }
+    .rlabel .prev{ display:block; }
+    .chips, .over{ flex:1; }
   }
 
-  .over{ display:none; margin-top:6px; align-items:center; gap:8px; }
-  .over.show{ display:flex; }
-  .over input{ width:100px; height:var(--chip-h); font-family:inherit; font-size:var(--chip-font);
-    text-align:center; border:1px solid var(--line-strong); border-radius:8px; color:var(--ink); }
   .detail{ display:none; margin-top:6px; }
   .detail.show{ display:block; }
+  @media (min-width:900px){
+    .row.hasdetail{ display:block; }
+    .row.hasdetail .rlabel{ width:auto; display:flex; margin-bottom:4px; }
+    .row.hasdetail .rlabel .prev{ display:inline; }
+  }
 
   textarea{ width:100%; font-family:inherit; font-size:16px; color:var(--ink);
     border:1px solid var(--line-strong); border-radius:8px; padding:9px; resize:none;
@@ -75,12 +84,12 @@
   .detail textarea{ min-height:52px; background:var(--alert-tint); border-color:var(--alert-line); }
 
   .signbtn{
-    width:100%; height:78px; font-family:inherit; font-size:16px;
+    width:100%; height:80px; font-family:inherit; font-size:16px;
     border:1px dashed var(--line-strong); border-radius:8px; background:var(--bg); color:var(--ink-soft);
-    display:flex; align-items:center; justify-content:center; gap:8px; overflow:hidden;
+    display:flex; align-items:center; justify-content:center; padding:6px; overflow:hidden;
   }
-  .signbtn.done{ border-style:solid; border-color:var(--brand); color:var(--ink); background:var(--brand-tint); }
-  .signprev{ height:60px; width:100%; }
+  .signbtn.done{ border-style:solid; border-color:var(--brand); background:var(--brand-tint); }
+  .signbtn svg{ width:100%; height:100%; }
   .signmeta{ font-size:11.5px; color:var(--ink-soft); margin-top:5px; }
 
   footer{ flex-shrink:0; background:var(--bg); border-top:1px solid var(--line);
@@ -129,8 +138,8 @@
 <body>
 
 <header>
-  <div class="hrow"><span class="dept" id="dept">3階東病棟</span><span class="prog" id="prog">0 / 6</span></div>
-  <div class="remain" id="remain"></div>
+  <div class="hrow"><span class="dept" id="dept">3階東病棟</span><span class="prog" id="prog">0 / 8</span></div>
+  <div class="rounders" id="rounders"></div>
 </header>
 
 <main id="main">
@@ -167,10 +176,7 @@
 <div id="err"></div>
 
 <div id="signmode">
-  <div class="smhead">
-    <span class="t">確認サイン</span>
-    <span class="d" id="smdept">3階東病棟</span>
-  </div>
+  <div class="smhead"><span class="t">確認サイン</span><span class="d" id="smdept">3階東病棟</span></div>
   <div class="smwrap">
     <svg id="signbig" xmlns="http://www.w3.org/2000/svg"></svg>
     <div class="smhint" id="smhint">ここに署名してください</div>
@@ -187,6 +193,7 @@
 
 var CONFIG = {
   dept:"3階東病棟",
+  rounders:["見本 一郎","見本 二郎","見本 三郎"],
   chips:{ values:[0,1,2,3,4], overflowLabel:"5+", overflowMin:5 },
   organisms:[
     { id:"mrsa",     label:"MRSA",             short:"MRSA",    prev:3 },
@@ -197,8 +204,8 @@ var CONFIG = {
     { id:"cre_mepm", label:"CRE（メロペネム）", short:"CREメロ", prev:2 }
   ],
   incidents:[
-    { id:"needlestick", label:"針刺し" },
-    { id:"exposure",    label:"体液曝露" }
+    { id:"needlestick", label:"針刺し",   short:"針刺し" },
+    { id:"exposure",    label:"体液曝露", short:"体液曝露" }
   ]
 };
 
@@ -208,6 +215,7 @@ var rowOf = {};
 function $(id){ return document.getElementById(id); }
 function el(t,c,x){ var e=document.createElement(t); if(c)e.className=c; if(x!=null)e.textContent=x; return e; }
 
+/* ---------- 菌 ---------- */
 function buildOrganisms(){
   var host=$("organisms");
   CONFIG.organisms.forEach(function(o){
@@ -229,46 +237,45 @@ function buildOrganisms(){
     row.appendChild(chips);
 
     var ov=el("div","over");
+    var back=el("button","btn back","← 戻る"); back.type="button";
     var inp=document.createElement("input");
     inp.type="number"; inp.inputMode="numeric"; inp.min=String(CONFIG.chips.overflowMin);
     inp.placeholder=CONFIG.chips.overflowMin+"以上";
+    back.addEventListener("click",function(){ closeOver(row); });
     inp.addEventListener("input",function(){
       var n=parseInt(inp.value,10);
-      if(!isNaN(n)&&n>=CONFIG.chips.overflowMin) setOrganism(o.id,n,row,true);
+      if(!isNaN(n)&&n>=CONFIG.chips.overflowMin){ state.organisms[o.id]=n; row.classList.remove("pending","flash"); update(); }
     });
-    ov.appendChild(inp); ov.appendChild(el("span",null,"人"));
+    ov.appendChild(back); ov.appendChild(inp); ov.appendChild(el("span","unit","人"));
     row.appendChild(ov);
     host.appendChild(row);
   });
 }
-function setOrganism(id,value,row,keepOver){
+function setOrganism(id,value,row){
   state.organisms[id]=value;
   var chips=row.querySelectorAll(".chips .chip"), vals=CONFIG.chips.values;
-  for(var i=0;i<chips.length;i++){
-    var over=(i===vals.length);
-    chips[i].classList.toggle("on", over ? value>=CONFIG.chips.overflowMin : vals[i]===value);
-  }
-  if(!keepOver&&value<CONFIG.chips.overflowMin){
-    row.querySelector(".over").classList.remove("show");
-    row.querySelector(".over input").value="";
-  }
+  for(var i=0;i<chips.length;i++) chips[i].classList.toggle("on", vals[i]===value);
   row.classList.remove("pending"); row.classList.remove("flash");
   update();
 }
 function openOver(row){
+  row.querySelector(".chips").style.display="none";
   row.querySelector(".over").classList.add("show");
-  var chips=row.querySelectorAll(".chips .chip");
-  for(var i=0;i<chips.length;i++) chips[i].classList.toggle("on", i===CONFIG.chips.values.length);
   row.querySelector(".over input").focus();
 }
+function closeOver(row){
+  row.querySelector(".over").classList.remove("show");
+  row.querySelector(".chips").style.display="flex";
+}
 
+/* ---------- インシデント（未選択から） ---------- */
 function buildIncidents(){
   var host=$("incidents");
   CONFIG.incidents.forEach(function(inc){
-    var row=el("div","row");
+    var row=el("div","row pending hasdetail"); rowOf[inc.id]=row;
     row.appendChild(el("div","rlabel",inc.label));
     var chips=el("div","chips");
-    var no=el("button","chip on","無"), yes=el("button","chip yes","有");
+    var no=el("button","chip","無"), yes=el("button","chip yes","有");
     no.type="button"; yes.type="button";
     chips.appendChild(no); chips.appendChild(yes);
     row.appendChild(chips);
@@ -276,25 +283,57 @@ function buildIncidents(){
     var ta=document.createElement("textarea");
     ta.placeholder="いつ・誰が・何が起きたか";
     det.appendChild(ta); row.appendChild(det);
-    state.incidents[inc.id]={has:false,detail:""};
+
     no.addEventListener("click",function(){
-      state.incidents[inc.id].has=false;
+      state.incidents[inc.id]={has:false,detail:""};
       no.classList.add("on"); yes.classList.remove("on"); det.classList.remove("show");
+      row.classList.remove("pending","flash"); update();
     });
     yes.addEventListener("click",function(){
-      state.incidents[inc.id].has=true;
+      state.incidents[inc.id]={has:true,detail:ta.value};
       yes.classList.add("on"); no.classList.remove("on"); det.classList.add("show"); ta.focus();
+      row.classList.remove("pending","flash"); update();
     });
-    ta.addEventListener("input",function(){ state.incidents[inc.id].detail=ta.value; });
+    ta.addEventListener("input",function(){
+      if(state.incidents[inc.id]) state.incidents[inc.id].detail=ta.value;
+    });
     host.appendChild(row);
   });
 }
 
+/* ---------- 署名 ---------- */
 var big=$("signbig"), smhint=$("smhint"), drawing=null;
 function pt(e){ var r=big.getBoundingClientRect(); return [Math.round(e.clientX-r.left),Math.round(e.clientY-r.top)]; }
 function pathData(p){ if(!p.length) return ""; var d="M"+p[0][0]+" "+p[0][1];
   for(var i=1;i<p.length;i++) d+="L"+p[i][0]+" "+p[i][1]; return d; }
-function sw(){ return getComputedStyle(document.documentElement).getPropertyValue("--sign-w").trim()||"3"; }
+function sw(){ return parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sign-w"))||3; }
+
+function bbox(){
+  var x1=Infinity,y1=Infinity,x2=-Infinity,y2=-Infinity;
+  state.strokes.forEach(function(s){
+    s.pts.forEach(function(p){
+      if(p[0]<x1)x1=p[0]; if(p[0]>x2)x2=p[0];
+      if(p[1]<y1)y1=p[1]; if(p[1]>y2)y2=p[1];
+    });
+  });
+  if(!isFinite(x1)) return null;
+  var pad=sw()*2+4;
+  x1-=pad; y1-=pad; x2+=pad; y2+=pad;
+  return { x:Math.round(x1), y:Math.round(y1),
+           w:Math.max(1,Math.round(x2-x1)), h:Math.max(1,Math.round(y2-y1)) };
+}
+function signSvg(){
+  var b=bbox(); if(!b) return "";
+  var body=state.strokes.map(function(s){ return '<path d="'+pathData(s.pts)+'"/>'; }).join("");
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="'+b.x+' '+b.y+' '+b.w+' '+b.h+'">'+
+    '<g fill="none" stroke="#1A252D" stroke-width="'+sw()+'" stroke-linecap="round" stroke-linejoin="round">'+
+    body+'</g></svg>';
+}
+function signKb(){ var s=signSvg(); return s ? (new TextEncoder().encode(s).length/1024).toFixed(1) : "0.0"; }
+function smInfo(){
+  var n=state.strokes.length, b=bbox();
+  $("sminfo").textContent = n ? n+"画 / "+signKb()+" KB / 範囲 "+b.w+"×"+b.h : "";
+}
 
 big.addEventListener("touchstart",function(e){ e.preventDefault(); },{passive:false});
 big.addEventListener("touchmove",function(e){ e.preventDefault(); },{passive:false});
@@ -302,7 +341,7 @@ big.addEventListener("pointerdown",function(e){
   e.preventDefault(); big.setPointerCapture(e.pointerId);
   var p=document.createElementNS("http://www.w3.org/2000/svg","path");
   p.setAttribute("fill","none"); p.setAttribute("stroke","#1A252D");
-  p.setAttribute("stroke-width",sw());
+  p.setAttribute("stroke-width",String(sw()));
   p.setAttribute("stroke-linecap","round"); p.setAttribute("stroke-linejoin","round");
   big.appendChild(p);
   drawing={pts:[pt(e)],node:p}; state.strokes.push(drawing);
@@ -323,50 +362,37 @@ function endStroke(){
 big.addEventListener("pointerup",endStroke);
 big.addEventListener("pointercancel",endStroke);
 
-function signSvg(){
-  if(!state.strokes.length) return "";
-  var r=big.getBoundingClientRect(), w=Math.round(r.width), h=Math.round(r.height);
-  var body=state.strokes.map(function(s){ return '<path d="'+pathData(s.pts)+'"/>'; }).join("");
-  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+w+' '+h+'">'+
-    '<g fill="none" stroke="#1A252D" stroke-width="'+sw()+'" stroke-linecap="round" stroke-linejoin="round">'+
-    body+'</g></svg>';
-}
-function signKb(){ return (new TextEncoder().encode(signSvg()).length/1024).toFixed(1); }
-function smInfo(){
-  var n=state.strokes.length;
-  $("sminfo").textContent = n ? n+"画 / "+signKb()+" KB" : "";
-}
 $("signbtn").addEventListener("click",function(){ $("signmode").classList.add("show"); smInfo(); });
 $("smclear").addEventListener("click",function(){
   state.strokes=[]; while(big.firstChild) big.removeChild(big.firstChild);
   smhint.classList.remove("hide"); smInfo();
 });
 $("smdone").addEventListener("click",function(){
+  var svgText=signSvg();          // 閉じる前に作る
+  var kb=signKb(), n=state.strokes.length;
   $("signmode").classList.remove("show");
   var b=$("signbtn"), m=$("signmeta");
   while(b.firstChild) b.removeChild(b.firstChild);
-  if(state.strokes.length){
+  if(n){
     b.classList.add("done");
-    var prev=el("div","signprev");
-    prev.innerHTML=signSvg().replace("<svg ",'<svg style="width:100%;height:100%" ');
-    b.appendChild(prev);
-    m.textContent=state.strokes.length+"画 / "+signKb()+" KB（タップで書き直し）";
+    b.innerHTML=svgText;
+    m.textContent=n+"画 / "+kb+" KB（タップで書き直し）";
   }else{
     b.classList.remove("done"); b.textContent="タップして署名"; m.textContent="未記入";
   }
   update();
 });
 
+/* ---------- 進捗 ---------- */
 function missing(){
   var m=[];
   CONFIG.organisms.forEach(function(o){ if(state.organisms[o.id]===undefined) m.push(o); });
+  CONFIG.incidents.forEach(function(i){ if(state.incidents[i.id]===undefined) m.push(i); });
   return m;
 }
 function update(){
-  var m=missing(), total=CONFIG.organisms.length;
+  var m=missing(), total=CONFIG.organisms.length+CONFIG.incidents.length;
   $("prog").textContent=(total-m.length)+" / "+total;
-  $("remain").textContent = m.length ? "未入力: "+m.map(function(o){return o.short;}).join("、")
-                                     : (state.strokes.length ? "入力完了" : "署名が未記入");
 }
 var errT=null;
 function showErr(msg){
@@ -391,6 +417,7 @@ $("next").addEventListener("click",function(){
   showErr("試作のためここまでです（署名 "+signKb()+" KB）");
 });
 
+/* ---------- 調整 ---------- */
 var COLORS=["#FFF8E3","#FFF3D0","#FFEBB8","#FFE29E"];
 function buildPanel(){
   var root=document.documentElement;
@@ -416,25 +443,29 @@ function buildPanel(){
   $("v-pending").textContent=COLORS[0];
 
   $("fit").addEventListener("click",function(){
-    var m=$("main"), R=$("p-chip");
+    var p=$("panel"), m=$("main"), R=$("p-chip");
+    p.classList.remove("show");        // パネルを閉じた状態で測る
     var lo=parseInt(R.min,10), hi=parseInt(R.max,10), best=lo, found=false;
     for(var h=hi; h>=lo; h--){
       root.style.setProperty("--chip-h",h+"px");
       if(m.scrollHeight<=m.clientHeight+1){ best=h; found=true; break; }
     }
     root.style.setProperty("--chip-h",best+"px");
+    p.classList.add("show");
     R.value=best; $("v-chip").textContent=best+"px";
-    $("v-fit").textContent = found ? "収まりました（"+best+"px）" : "この画面には収まりません（最小 "+lo+"px でも不足）";
-    note();
+    $("v-fit").textContent = found ? "収まりました（"+best+"px）" : "収まりません（最小 "+lo+"px でも不足）";
+    note(true);
   });
 
-  function note(){
+  function note(fromFit){
     var h=parseInt(getComputedStyle(root).getPropertyValue("--chip-h"),10);
-    var m=$("main");
+    var m=$("main"), p=$("panel");
+    var open=p.classList.contains("show");
+    var fits = m.scrollHeight <= m.clientHeight + (open ? p.offsetHeight : 0) + 1;
     $("pnote").textContent =
       "チップ "+h+"px ≒ "+(h*25.4/96).toFixed(1)+"mm（指の操作は44px≒11.6mm以上が目安）。"+
       "画面幅 "+window.innerWidth+"px / "+(window.innerWidth>=900?"2列":"1列")+
-      " / "+(m.scrollHeight<=m.clientHeight+1?"1画面に収まっています":"スクロールが必要です");
+      " / パネルを閉じれば"+(fits?"1画面に収まります":"スクロールが必要です");
   }
   window.addEventListener("resize",function(){ setTimeout(note,80); });
   $("tune").addEventListener("click",function(){ $("panel").classList.toggle("show"); setTimeout(note,60); });
@@ -442,7 +473,9 @@ function buildPanel(){
 }
 
 $("note").addEventListener("input",function(){ state.note=this.value; });
-$("dept").textContent=CONFIG.dept; $("smdept").textContent=CONFIG.dept;
+$("dept").textContent=CONFIG.dept;
+$("smdept").textContent=CONFIG.dept;
+$("rounders").textContent="ラウンド者: "+CONFIG.rounders.join("・");
 buildOrganisms(); buildIncidents(); buildPanel(); update();
 </script>
 </body>
