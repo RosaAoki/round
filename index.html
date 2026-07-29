@@ -4,507 +4,446 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0064B4">
-<title>記録画面 試作</title>
+<title>記録画面 試作 v2</title>
 <style>
   :root{
-    --brand:#0064B4;
-    --brand-press:#004E8C;
-    --brand-tint:#E2EEF8;
-    --bg:#FFFFFF;
-    --surface:#F7F9FA;
-    --line:#D9DEE3;
-    --line-strong:#8B959C;
-    --ink:#1A252D;
-    --ink-soft:#5E6D78;
-    --pending:#FFF8E3;
-    --pending-line:#E8D9A8;
-    --pending-ink:#8A6A12;
-    --alert:#C22F26;
-    --alert-tint:#FDEDEC;
-    --alert-line:#F0C4C1;
-
-    --chip-h:52px;
-    --chip-font:17px;
-    --sign-w:3;
+    --brand:#0064B4; --brand-press:#004E8C; --brand-tint:#E2EEF8;
+    --bg:#FFFFFF; --surface:#F7F9FA;
+    --line:#D9DEE3; --line-strong:#8B959C;
+    --ink:#1A252D; --ink-soft:#5E6D78;
+    --pending:#FFF8E3; --pending-line:#E8D9A8; --pending-ink:#8A6A12;
+    --alert:#C22F26; --alert-tint:#FDEDEC; --alert-line:#F0C4C1;
+    --chip-h:48px; --chip-font:18px; --sign-w:3;
   }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body{ margin:0; height:100%; }
+  html,body{ margin:0; height:100%; overscroll-behavior:none; }
   body{
-    background:var(--surface);
-    color:var(--ink);
+    background:var(--surface); color:var(--ink);
     font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
-    font-size:16px; line-height:1.6;
-    display:flex; flex-direction:column;
-    height:100dvh; overflow:hidden;
+    font-size:16px; line-height:1.5;
+    display:flex; flex-direction:column; height:100dvh; overflow:hidden;
   }
 
-  header{
-    background:var(--brand); color:#fff;
-    padding:10px 16px calc(10px + env(safe-area-inset-top)) 16px;
-    padding-top:calc(10px + env(safe-area-inset-top));
-    flex-shrink:0;
-  }
+  header{ background:var(--brand); color:#fff; padding:calc(8px + env(safe-area-inset-top)) 16px 8px; flex-shrink:0; }
   .hrow{ display:flex; align-items:baseline; gap:12px; }
   .dept{ font-size:18px; font-weight:600; }
   .prog{ margin-left:auto; font-size:15px; }
-  .remain{ font-size:13px; opacity:.95; margin-top:2px; min-height:1.4em; }
+  .remain{ font-size:12.5px; margin-top:1px; min-height:1.3em; }
 
-  main{ flex:1; overflow-y:auto; padding:12px 16px 24px; -webkit-overflow-scrolling:touch; }
-  .grid{ display:grid; gap:14px; grid-template-columns:1fr; }
-  @media (min-width:820px){
-    .grid{ grid-template-columns:1.3fr 1fr; align-items:start; }
-  }
+  main{ flex:1; overflow-y:auto; padding:10px 14px 14px; -webkit-overflow-scrolling:touch; }
+  .grid{ display:grid; gap:10px; grid-template-columns:1fr; }
+  @media (min-width:900px){ .grid{ grid-template-columns:1.5fr 1fr; align-items:start; } }
 
-  .card{ background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:12px 14px; }
-  .card h2{ font-size:13px; color:var(--ink-soft); margin:0 0 10px; font-weight:600; letter-spacing:.04em; }
+  .card{ background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:9px 12px; margin-bottom:10px; }
+  .card:last-child{ margin-bottom:0; }
+  .card h2{ font-size:12px; color:var(--ink-soft); margin:0 0 6px; font-weight:600; letter-spacing:.04em; }
 
-  .row{ padding:7px 0; border-radius:8px; }
-  .row.pending{ background:var(--pending); box-shadow:0 0 0 1px var(--pending-line) inset; padding-left:8px; padding-right:8px; }
-  .rlabel{ display:flex; align-items:baseline; gap:10px; margin-bottom:6px; font-size:15px; }
-  .rlabel .prev{ font-size:13px; color:var(--ink-soft); }
+  .row{ padding:4px 6px; border-radius:8px; margin:0 -6px; }
+  .row.pending{ background:var(--pending); box-shadow:0 0 0 1px var(--pending-line) inset; }
+  .row.flash{ box-shadow:0 0 0 3px var(--alert) inset; }
+  .rlabel{ display:flex; align-items:baseline; gap:8px; font-size:14px; margin-bottom:4px; }
+  .rlabel .prev{ font-size:12.5px; color:var(--ink-soft); }
   .row.pending .rlabel .prev{ color:var(--pending-ink); font-weight:600; }
-
-  .chips{ display:flex; gap:6px; }
+  .chips{ display:flex; gap:5px; }
   .chip{
-    flex:1; height:var(--chip-h); min-width:0;
-    font-family:inherit; font-size:var(--chip-font); color:var(--ink);
-    background:var(--bg); border:1px solid var(--line-strong); border-radius:8px;
-    display:flex; align-items:center; justify-content:center;
-    cursor:pointer; user-select:none; padding:0;
+    flex:1; height:var(--chip-h); min-width:0; font-family:inherit;
+    font-size:var(--chip-font); color:var(--ink); background:var(--bg);
+    border:1px solid var(--line-strong); border-radius:8px;
+    display:flex; align-items:center; justify-content:center; padding:0;
   }
   .chip:active{ background:var(--brand-tint); }
   .chip.on{ background:var(--brand); border-color:var(--brand); color:#fff; font-weight:600; }
-
-  .yn{ display:flex; gap:6px; }
-  .yn .chip{ flex:1; }
-  .chip.no.on{ background:var(--brand); border-color:var(--brand); }
   .chip.yes.on{ background:var(--alert); border-color:var(--alert); }
 
-  .over{ display:none; margin-top:8px; align-items:center; gap:8px; }
-  .over.show{ display:flex; }
-  .over input{
-    width:110px; height:var(--chip-h); font-family:inherit; font-size:var(--chip-font);
-    text-align:center; border:1px solid var(--line-strong); border-radius:8px; color:var(--ink);
+  @media (min-width:900px){
+    .row{ display:flex; align-items:center; gap:10px; }
+    .rlabel{ width:170px; flex-shrink:0; margin-bottom:0; display:block; }
+    .rlabel .prev{ margin-left:6px; }
+    .chips{ flex:1; }
   }
-  .detail{ display:none; margin-top:8px; }
+
+  .over{ display:none; margin-top:6px; align-items:center; gap:8px; }
+  .over.show{ display:flex; }
+  .over input{ width:100px; height:var(--chip-h); font-family:inherit; font-size:var(--chip-font);
+    text-align:center; border:1px solid var(--line-strong); border-radius:8px; color:var(--ink); }
+  .detail{ display:none; margin-top:6px; }
   .detail.show{ display:block; }
 
-  textarea{
-    width:100%; font-family:inherit; font-size:16px; color:var(--ink);
-    border:1px solid var(--line-strong); border-radius:8px; padding:10px;
-    resize:vertical; min-height:84px; line-height:1.6;
-  }
-  .detail textarea{ min-height:60px; background:var(--alert-tint); border-color:var(--alert-line); }
+  textarea{ width:100%; font-family:inherit; font-size:16px; color:var(--ink);
+    border:1px solid var(--line-strong); border-radius:8px; padding:9px; resize:none;
+    min-height:70px; line-height:1.5; }
+  .detail textarea{ min-height:52px; background:var(--alert-tint); border-color:var(--alert-line); }
 
-  .signwrap{ position:relative; }
-  #sign{
-    width:100%; height:190px; display:block; touch-action:none;
-    background:var(--bg); border:1px solid var(--line-strong); border-radius:8px;
+  .signbtn{
+    width:100%; height:78px; font-family:inherit; font-size:16px;
+    border:1px dashed var(--line-strong); border-radius:8px; background:var(--bg); color:var(--ink-soft);
+    display:flex; align-items:center; justify-content:center; gap:8px; overflow:hidden;
   }
-  .signhint{
-    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    color:var(--ink-soft); font-size:14px; pointer-events:none;
-  }
-  .signhint.hide{ display:none; }
-  .signbar{ display:flex; align-items:center; gap:10px; margin-top:8px; font-size:12px; color:var(--ink-soft); }
-  .signbar button{ font-family:inherit; font-size:13px; padding:8px 14px; border:1px solid var(--line-strong); background:var(--bg); border-radius:8px; color:var(--ink); }
+  .signbtn.done{ border-style:solid; border-color:var(--brand); color:var(--ink); background:var(--brand-tint); }
+  .signprev{ height:60px; width:100%; }
+  .signmeta{ font-size:11.5px; color:var(--ink-soft); margin-top:5px; }
 
-  footer{
-    flex-shrink:0; background:var(--bg); border-top:1px solid var(--line);
-    padding:10px 16px calc(10px + env(safe-area-inset-bottom));
-    display:flex; align-items:center; gap:12px;
-  }
-  footer .next{
-    margin-left:auto; font-family:inherit; font-size:16px; font-weight:600;
-    background:var(--brand); color:#fff; border:none; border-radius:8px; padding:12px 22px;
-  }
-  footer .next:disabled{ background:var(--line-strong); }
-  .tune{ font-family:inherit; font-size:13px; padding:9px 14px; border:1px solid var(--line-strong); background:var(--bg); border-radius:8px; color:var(--ink); }
+  footer{ flex-shrink:0; background:var(--bg); border-top:1px solid var(--line);
+    padding:8px 14px calc(8px + env(safe-area-inset-bottom)); display:flex; align-items:center; gap:10px; }
+  .btn{ font-family:inherit; font-size:13px; padding:9px 13px; border:1px solid var(--line-strong);
+    background:var(--bg); border-radius:8px; color:var(--ink); }
+  .next{ margin-left:auto; font-size:16px; font-weight:600; background:var(--brand);
+    color:#fff; border:none; border-radius:8px; padding:12px 22px; }
 
-  #panel{
-    display:none; flex-shrink:0; background:var(--bg); border-top:1px solid var(--line);
-    padding:12px 16px; font-size:13px;
+  #err{ display:none; position:fixed; left:50%; bottom:76px; transform:translateX(-50%);
+    background:var(--alert); color:#fff; font-size:14px; padding:10px 18px; border-radius:999px;
+    max-width:88vw; text-align:center; z-index:60; }
+  #err.show{ display:block; }
+
+  #signmode{
+    display:none; position:fixed; inset:0; z-index:100; background:var(--bg);
+    flex-direction:column; padding:calc(10px + env(safe-area-inset-top)) 14px calc(10px + env(safe-area-inset-bottom));
   }
+  #signmode.show{ display:flex; }
+  .smhead{ display:flex; align-items:baseline; gap:12px; margin-bottom:8px; }
+  .smhead .t{ font-size:17px; font-weight:600; }
+  .smhead .d{ font-size:13px; color:var(--ink-soft); }
+  .smwrap{ flex:1; position:relative; display:flex; }
+  #signbig{ flex:1; width:100%; display:block; touch-action:none;
+    background:var(--bg); border:1px solid var(--line-strong); border-radius:10px; }
+  .smhint{ position:absolute; left:0; right:0; top:50%; text-align:center;
+    color:var(--ink-soft); font-size:15px; pointer-events:none; }
+  .smhint.hide{ display:none; }
+  .smfoot{ display:flex; align-items:center; gap:10px; margin-top:10px; }
+  .smfoot .done{ margin-left:auto; font-family:inherit; font-size:16px; font-weight:600;
+    background:var(--brand); color:#fff; border:none; border-radius:8px; padding:12px 26px; }
+
+  #panel{ display:none; flex-shrink:0; background:var(--bg); border-top:1px solid var(--line);
+    padding:10px 14px; font-size:13px; }
   #panel.show{ display:block; }
-  #panel .prow{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
-  #panel .prow label{ width:120px; color:var(--ink-soft); }
+  #panel .prow{ display:flex; align-items:center; gap:10px; margin-bottom:7px; }
+  #panel .prow label{ width:110px; color:var(--ink-soft); }
   #panel input[type=range]{ flex:1; }
-  #panel .val{ width:56px; text-align:right; font-variant-numeric:tabular-nums; }
-  #panel .note{ color:var(--ink-soft); font-size:11.5px; line-height:1.6; margin-top:6px; }
+  #panel .val{ width:54px; text-align:right; font-variant-numeric:tabular-nums; }
+  #panel .note{ color:var(--ink-soft); font-size:11.5px; line-height:1.55; margin-top:5px; }
   .swatches{ display:flex; gap:6px; }
-  .swatch{ width:38px; height:30px; border:1px solid var(--line-strong); border-radius:6px; cursor:pointer; }
+  .swatch{ width:36px; height:28px; border:1px solid var(--line-strong); border-radius:6px; }
   .swatch.on{ box-shadow:0 0 0 2px var(--brand); }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="hrow">
-    <span class="dept" id="dept">3階東病棟</span>
-    <span class="prog" id="prog">0 / 8</span>
-  </div>
+  <div class="hrow"><span class="dept" id="dept">3階東病棟</span><span class="prog" id="prog">0 / 6</span></div>
   <div class="remain" id="remain"></div>
 </header>
 
-<main>
+<main id="main">
   <div class="grid">
     <div>
-      <div class="card" style="margin-bottom:14px;">
-        <h2>菌の人数</h2>
-        <div id="organisms"></div>
-      </div>
-      <div class="card">
-        <h2>インシデント</h2>
-        <div id="incidents"></div>
-      </div>
+      <div class="card"><h2>菌の人数</h2><div id="organisms"></div></div>
+      <div class="card"><h2>インシデント</h2><div id="incidents"></div></div>
     </div>
-
     <div>
-      <div class="card" style="margin-bottom:14px;">
-        <h2>備考</h2>
-        <textarea id="note" placeholder="気づいたことを入力"></textarea>
-      </div>
+      <div class="card"><h2>備考</h2><textarea id="note" placeholder="気づいたことを入力"></textarea></div>
       <div class="card">
         <h2>確認サイン</h2>
-        <div class="signwrap">
-          <svg id="sign" xmlns="http://www.w3.org/2000/svg"></svg>
-          <div class="signhint" id="signhint">ここに署名</div>
-        </div>
-        <div class="signbar">
-          <button type="button" id="signclear">消す</button>
-          <span id="signinfo">未記入</span>
-        </div>
+        <button type="button" class="signbtn" id="signbtn">タップして署名</button>
+        <div class="signmeta" id="signmeta">未記入</div>
       </div>
     </div>
   </div>
 </main>
 
 <div id="panel">
-  <div class="prow">
-    <label for="p-chip">チップの高さ</label>
-    <input type="range" id="p-chip" min="36" max="80" step="2" value="52">
-    <span class="val" id="v-chip">52px</span>
-  </div>
-  <div class="prow">
-    <label for="p-font">文字の大きさ</label>
-    <input type="range" id="p-font" min="13" max="24" step="1" value="17">
-    <span class="val" id="v-font">17px</span>
-  </div>
-  <div class="prow">
-    <label for="p-sign">署名の線の太さ</label>
-    <input type="range" id="p-sign" min="1" max="8" step="0.5" value="3">
-    <span class="val" id="v-sign">3.0</span>
-  </div>
-  <div class="prow">
-    <label>未入力の色</label>
-    <div class="swatches" id="swatches"></div>
-    <span class="val" id="v-pending"></span>
-  </div>
+  <div class="prow"><label for="p-chip">チップの高さ</label><input type="range" id="p-chip" min="34" max="80" step="1" value="48"><span class="val" id="v-chip">48px</span></div>
+  <div class="prow"><label for="p-font">文字の大きさ</label><input type="range" id="p-font" min="13" max="26" step="1" value="18"><span class="val" id="v-font">18px</span></div>
+  <div class="prow"><label for="p-sign">署名の線の太さ</label><input type="range" id="p-sign" min="1" max="8" step="0.5" value="3"><span class="val" id="v-sign">3.0</span></div>
+  <div class="prow"><label>未入力の色</label><div class="swatches" id="swatches"></div><span class="val" id="v-pending"></span></div>
+  <div class="prow"><button type="button" class="btn" id="fit">この画面に合わせる</button><span id="v-fit" style="color:var(--ink-soft);font-size:12px"></span></div>
   <div class="note" id="pnote"></div>
 </div>
 
 <footer>
-  <button type="button" class="tune" id="tune">調整</button>
-  <button type="button" class="next" id="next" disabled>次の部署へ</button>
+  <button type="button" class="btn" id="tune">調整</button>
+  <button type="button" class="next" id="next">次の部署へ</button>
 </footer>
+
+<div id="err"></div>
+
+<div id="signmode">
+  <div class="smhead">
+    <span class="t">確認サイン</span>
+    <span class="d" id="smdept">3階東病棟</span>
+  </div>
+  <div class="smwrap">
+    <svg id="signbig" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="smhint" id="smhint">ここに署名してください</div>
+  </div>
+  <div class="smfoot">
+    <button type="button" class="btn" id="smclear">消す</button>
+    <span id="sminfo" style="font-size:12px;color:var(--ink-soft)"></span>
+    <button type="button" class="done" id="smdone">完了</button>
+  </div>
+</div>
 
 <script>
 "use strict";
 
 var CONFIG = {
-  dept: "3階東病棟",
-  chips: { values:[0,1,2,3,4], overflowLabel:"5+", overflowMin:5 },
-  organisms: [
-    { id:"mrsa",     label:"MRSA",             prev:3 },
-    { id:"mdrp",     label:"MDRP（2剤耐性）",   prev:0 },
-    { id:"esbl",     label:"ESBL",             prev:1 },
-    { id:"cd",       label:"CD",               prev:0 },
-    { id:"cre3",     label:"CRE（3剤耐性）",    prev:0 },
-    { id:"cre_mepm", label:"CRE（メロペネム）", prev:2 }
+  dept:"3階東病棟",
+  chips:{ values:[0,1,2,3,4], overflowLabel:"5+", overflowMin:5 },
+  organisms:[
+    { id:"mrsa",     label:"MRSA",             short:"MRSA",    prev:3 },
+    { id:"mdrp",     label:"MDRP（2剤耐性）",   short:"MDRP",    prev:0 },
+    { id:"esbl",     label:"ESBL",             short:"ESBL",    prev:1 },
+    { id:"cd",       label:"CD",               short:"CD",      prev:0 },
+    { id:"cre3",     label:"CRE（3剤耐性）",    short:"CRE3剤",  prev:0 },
+    { id:"cre_mepm", label:"CRE（メロペネム）", short:"CREメロ", prev:2 }
   ],
-  incidents: [
+  incidents:[
     { id:"needlestick", label:"針刺し" },
     { id:"exposure",    label:"体液曝露" }
   ]
 };
 
 var state = { organisms:{}, incidents:{}, note:"", strokes:[] };
+var rowOf = {};
 
-function el(tag, cls, text){
-  var e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text != null) e.textContent = text;
-  return e;
-}
+function $(id){ return document.getElementById(id); }
+function el(t,c,x){ var e=document.createElement(t); if(c)e.className=c; if(x!=null)e.textContent=x; return e; }
 
-/* ---------- 菌の行 ---------- */
 function buildOrganisms(){
-  var host = document.getElementById("organisms");
+  var host=$("organisms");
   CONFIG.organisms.forEach(function(o){
-    var row = el("div", "row pending");
-    row.dataset.id = o.id;
-
-    var lab = el("div", "rlabel");
-    lab.appendChild(el("span", null, o.label));
-    var prev = el("span", "prev", "前回 " + o.prev);
-    lab.appendChild(prev);
+    var row=el("div","row pending"); rowOf[o.id]=row;
+    var lab=el("div","rlabel");
+    lab.appendChild(el("span",null,o.label));
+    lab.appendChild(el("span","prev","前回 "+o.prev));
     row.appendChild(lab);
 
-    var chips = el("div", "chips");
+    var chips=el("div","chips");
     CONFIG.chips.values.forEach(function(v){
-      var b = el("button", "chip", String(v));
-      b.type = "button";
-      b.addEventListener("click", function(){ setOrganism(o.id, v, row); });
+      var b=el("button","chip",String(v)); b.type="button";
+      b.addEventListener("click",function(){ setOrganism(o.id,v,row); });
       chips.appendChild(b);
     });
-    var over = el("button", "chip", CONFIG.chips.overflowLabel);
-    over.type = "button";
-    over.addEventListener("click", function(){ openOver(o.id, row); });
-    chips.appendChild(over);
+    var ob=el("button","chip",CONFIG.chips.overflowLabel); ob.type="button";
+    ob.addEventListener("click",function(){ openOver(row); });
+    chips.appendChild(ob);
     row.appendChild(chips);
 
-    var ov = el("div", "over");
-    var inp = document.createElement("input");
-    inp.type = "number"; inp.inputMode = "numeric";
-    inp.min = String(CONFIG.chips.overflowMin);
-    inp.placeholder = CONFIG.chips.overflowMin + "以上";
-    inp.addEventListener("input", function(){
-      var n = parseInt(inp.value, 10);
-      if (!isNaN(n) && n >= CONFIG.chips.overflowMin) setOrganism(o.id, n, row, true);
+    var ov=el("div","over");
+    var inp=document.createElement("input");
+    inp.type="number"; inp.inputMode="numeric"; inp.min=String(CONFIG.chips.overflowMin);
+    inp.placeholder=CONFIG.chips.overflowMin+"以上";
+    inp.addEventListener("input",function(){
+      var n=parseInt(inp.value,10);
+      if(!isNaN(n)&&n>=CONFIG.chips.overflowMin) setOrganism(o.id,n,row,true);
     });
-    ov.appendChild(inp);
-    ov.appendChild(el("span", null, "人"));
+    ov.appendChild(inp); ov.appendChild(el("span",null,"人"));
     row.appendChild(ov);
-
     host.appendChild(row);
   });
 }
-
-function setOrganism(id, value, row, keepOver){
-  state.organisms[id] = value;
-  var chips = row.querySelectorAll(".chips .chip");
-  var vals = CONFIG.chips.values;
-  for (var i = 0; i < chips.length; i++){
-    var isOver = (i === vals.length);
-    var on = isOver ? (value >= CONFIG.chips.overflowMin) : (vals[i] === value);
-    chips[i].classList.toggle("on", on);
+function setOrganism(id,value,row,keepOver){
+  state.organisms[id]=value;
+  var chips=row.querySelectorAll(".chips .chip"), vals=CONFIG.chips.values;
+  for(var i=0;i<chips.length;i++){
+    var over=(i===vals.length);
+    chips[i].classList.toggle("on", over ? value>=CONFIG.chips.overflowMin : vals[i]===value);
   }
-  if (!keepOver && value < CONFIG.chips.overflowMin){
+  if(!keepOver&&value<CONFIG.chips.overflowMin){
     row.querySelector(".over").classList.remove("show");
-    row.querySelector(".over input").value = "";
+    row.querySelector(".over input").value="";
   }
-  row.classList.remove("pending");
+  row.classList.remove("pending"); row.classList.remove("flash");
   update();
 }
-
-function openOver(id, row){
+function openOver(row){
   row.querySelector(".over").classList.add("show");
-  var chips = row.querySelectorAll(".chips .chip");
-  for (var i = 0; i < chips.length; i++) chips[i].classList.toggle("on", i === CONFIG.chips.values.length);
+  var chips=row.querySelectorAll(".chips .chip");
+  for(var i=0;i<chips.length;i++) chips[i].classList.toggle("on", i===CONFIG.chips.values.length);
   row.querySelector(".over input").focus();
 }
 
-/* ---------- インシデント ---------- */
 function buildIncidents(){
-  var host = document.getElementById("incidents");
+  var host=$("incidents");
   CONFIG.incidents.forEach(function(inc){
-    var row = el("div", "row");
-    row.appendChild(el("div", "rlabel", inc.label));
-
-    var yn = el("div", "yn");
-    var no = el("button", "chip no on", "無");
-    var yes = el("button", "chip yes", "有");
-    no.type = "button"; yes.type = "button";
-    yn.appendChild(no); yn.appendChild(yes);
-    row.appendChild(yn);
-
-    var det = el("div", "detail");
-    var ta = document.createElement("textarea");
-    ta.placeholder = "いつ・誰が・何が起きたか";
-    det.appendChild(ta);
-    row.appendChild(det);
-
-    state.incidents[inc.id] = { has:false, detail:"" };
-
-    no.addEventListener("click", function(){
-      state.incidents[inc.id].has = false;
-      no.classList.add("on"); yes.classList.remove("on");
-      det.classList.remove("show");
-      update();
+    var row=el("div","row");
+    row.appendChild(el("div","rlabel",inc.label));
+    var chips=el("div","chips");
+    var no=el("button","chip on","無"), yes=el("button","chip yes","有");
+    no.type="button"; yes.type="button";
+    chips.appendChild(no); chips.appendChild(yes);
+    row.appendChild(chips);
+    var det=el("div","detail");
+    var ta=document.createElement("textarea");
+    ta.placeholder="いつ・誰が・何が起きたか";
+    det.appendChild(ta); row.appendChild(det);
+    state.incidents[inc.id]={has:false,detail:""};
+    no.addEventListener("click",function(){
+      state.incidents[inc.id].has=false;
+      no.classList.add("on"); yes.classList.remove("on"); det.classList.remove("show");
     });
-    yes.addEventListener("click", function(){
-      state.incidents[inc.id].has = true;
-      yes.classList.add("on"); no.classList.remove("on");
-      det.classList.add("show");
-      ta.focus();
-      update();
+    yes.addEventListener("click",function(){
+      state.incidents[inc.id].has=true;
+      yes.classList.add("on"); no.classList.remove("on"); det.classList.add("show"); ta.focus();
     });
-    ta.addEventListener("input", function(){ state.incidents[inc.id].detail = ta.value; });
-
+    ta.addEventListener("input",function(){ state.incidents[inc.id].detail=ta.value; });
     host.appendChild(row);
   });
 }
 
-/* ---------- 署名 ---------- */
-var svg = document.getElementById("sign");
-var hint = document.getElementById("signhint");
-var drawing = null;
+var big=$("signbig"), smhint=$("smhint"), drawing=null;
+function pt(e){ var r=big.getBoundingClientRect(); return [Math.round(e.clientX-r.left),Math.round(e.clientY-r.top)]; }
+function pathData(p){ if(!p.length) return ""; var d="M"+p[0][0]+" "+p[0][1];
+  for(var i=1;i<p.length;i++) d+="L"+p[i][0]+" "+p[i][1]; return d; }
+function sw(){ return getComputedStyle(document.documentElement).getPropertyValue("--sign-w").trim()||"3"; }
 
-function svgPoint(e){
-  var r = svg.getBoundingClientRect();
-  return [Math.round(e.clientX - r.left), Math.round(e.clientY - r.top)];
-}
-function pathData(pts){
-  if (!pts.length) return "";
-  var d = "M" + pts[0][0] + " " + pts[0][1];
-  for (var i = 1; i < pts.length; i++) d += "L" + pts[i][0] + " " + pts[i][1];
-  return d;
-}
-function strokeWidth(){
-  return getComputedStyle(document.documentElement).getPropertyValue("--sign-w").trim() || "3";
-}
-svg.addEventListener("pointerdown", function(e){
-  e.preventDefault();
-  svg.setPointerCapture(e.pointerId);
-  var p = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  p.setAttribute("fill", "none");
-  p.setAttribute("stroke", "#1A252D");
-  p.setAttribute("stroke-width", strokeWidth());
-  p.setAttribute("stroke-linecap", "round");
-  p.setAttribute("stroke-linejoin", "round");
-  svg.appendChild(p);
-  drawing = { pts:[svgPoint(e)], node:p };
-  state.strokes.push(drawing);
-  hint.classList.add("hide");
+big.addEventListener("touchstart",function(e){ e.preventDefault(); },{passive:false});
+big.addEventListener("touchmove",function(e){ e.preventDefault(); },{passive:false});
+big.addEventListener("pointerdown",function(e){
+  e.preventDefault(); big.setPointerCapture(e.pointerId);
+  var p=document.createElementNS("http://www.w3.org/2000/svg","path");
+  p.setAttribute("fill","none"); p.setAttribute("stroke","#1A252D");
+  p.setAttribute("stroke-width",sw());
+  p.setAttribute("stroke-linecap","round"); p.setAttribute("stroke-linejoin","round");
+  big.appendChild(p);
+  drawing={pts:[pt(e)],node:p}; state.strokes.push(drawing);
+  smhint.classList.add("hide"); smInfo();
 });
-svg.addEventListener("pointermove", function(e){
-  if (!drawing) return;
-  e.preventDefault();
-  var p = svgPoint(e);
-  var last = drawing.pts[drawing.pts.length - 1];
-  if (Math.abs(p[0]-last[0]) + Math.abs(p[1]-last[1]) < 2) return;
-  drawing.pts.push(p);
-  drawing.node.setAttribute("d", pathData(drawing.pts));
+big.addEventListener("pointermove",function(e){
+  if(!drawing) return; e.preventDefault();
+  var p=pt(e), l=drawing.pts[drawing.pts.length-1];
+  if(Math.abs(p[0]-l[0])+Math.abs(p[1]-l[1])<2) return;
+  drawing.pts.push(p); drawing.node.setAttribute("d",pathData(drawing.pts));
 });
 function endStroke(){
-  if (!drawing) return;
-  if (drawing.pts.length === 1){
-    drawing.pts.push([drawing.pts[0][0] + 1, drawing.pts[0][1]]);
-    drawing.node.setAttribute("d", pathData(drawing.pts));
-  }
-  drawing = null;
-  update();
+  if(!drawing) return;
+  if(drawing.pts.length===1){ drawing.pts.push([drawing.pts[0][0]+1,drawing.pts[0][1]]);
+    drawing.node.setAttribute("d",pathData(drawing.pts)); }
+  drawing=null; smInfo();
 }
-svg.addEventListener("pointerup", endStroke);
-svg.addEventListener("pointercancel", endStroke);
-svg.addEventListener("pointerleave", endStroke);
+big.addEventListener("pointerup",endStroke);
+big.addEventListener("pointercancel",endStroke);
 
-document.getElementById("signclear").addEventListener("click", function(){
-  state.strokes = [];
-  while (svg.firstChild) svg.removeChild(svg.firstChild);
-  hint.classList.remove("hide");
+function signSvg(){
+  if(!state.strokes.length) return "";
+  var r=big.getBoundingClientRect(), w=Math.round(r.width), h=Math.round(r.height);
+  var body=state.strokes.map(function(s){ return '<path d="'+pathData(s.pts)+'"/>'; }).join("");
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+w+' '+h+'">'+
+    '<g fill="none" stroke="#1A252D" stroke-width="'+sw()+'" stroke-linecap="round" stroke-linejoin="round">'+
+    body+'</g></svg>';
+}
+function signKb(){ return (new TextEncoder().encode(signSvg()).length/1024).toFixed(1); }
+function smInfo(){
+  var n=state.strokes.length;
+  $("sminfo").textContent = n ? n+"画 / "+signKb()+" KB" : "";
+}
+$("signbtn").addEventListener("click",function(){ $("signmode").classList.add("show"); smInfo(); });
+$("smclear").addEventListener("click",function(){
+  state.strokes=[]; while(big.firstChild) big.removeChild(big.firstChild);
+  smhint.classList.remove("hide"); smInfo();
+});
+$("smdone").addEventListener("click",function(){
+  $("signmode").classList.remove("show");
+  var b=$("signbtn"), m=$("signmeta");
+  while(b.firstChild) b.removeChild(b.firstChild);
+  if(state.strokes.length){
+    b.classList.add("done");
+    var prev=el("div","signprev");
+    prev.innerHTML=signSvg().replace("<svg ",'<svg style="width:100%;height:100%" ');
+    b.appendChild(prev);
+    m.textContent=state.strokes.length+"画 / "+signKb()+" KB（タップで書き直し）";
+  }else{
+    b.classList.remove("done"); b.textContent="タップして署名"; m.textContent="未記入";
+  }
   update();
 });
 
-function signSvgText(){
-  if (!state.strokes.length) return "";
-  var r = svg.getBoundingClientRect();
-  var w = Math.round(r.width), h = Math.round(r.height);
-  var body = state.strokes.map(function(s){
-    return '<path d="' + pathData(s.pts) + '"/>';
-  }).join("");
-  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + w + ' ' + h + '">' +
-         '<g fill="none" stroke="#1A252D" stroke-width="' + strokeWidth() +
-         '" stroke-linecap="round" stroke-linejoin="round">' + body + '</g></svg>';
+function missing(){
+  var m=[];
+  CONFIG.organisms.forEach(function(o){ if(state.organisms[o.id]===undefined) m.push(o); });
+  return m;
 }
-
-/* ---------- 進捗 ---------- */
 function update(){
-  var done = 0, remain = [];
-  CONFIG.organisms.forEach(function(o){
-    if (state.organisms[o.id] !== undefined) done++;
-    else remain.push(o.label.replace(/（.*/, ""));
-  });
-  var total = CONFIG.organisms.length + CONFIG.incidents.length;
-  done += CONFIG.incidents.length;
-
-  document.getElementById("prog").textContent = done + " / " + total;
-  document.getElementById("remain").textContent = remain.length ? "未入力: " + remain.join("、") : "全項目 入力済み";
-
-  var signed = state.strokes.length > 0;
-  var info = document.getElementById("signinfo");
-  if (signed){
-    var bytes = new TextEncoder().encode(signSvgText()).length;
-    info.textContent = state.strokes.length + "画 / " + (bytes/1024).toFixed(1) + " KB";
-  } else {
-    info.textContent = "未記入";
-  }
-  document.getElementById("next").disabled = !(remain.length === 0 && signed);
+  var m=missing(), total=CONFIG.organisms.length;
+  $("prog").textContent=(total-m.length)+" / "+total;
+  $("remain").textContent = m.length ? "未入力: "+m.map(function(o){return o.short;}).join("、")
+                                     : (state.strokes.length ? "入力完了" : "署名が未記入");
 }
+var errT=null;
+function showErr(msg){
+  var e=$("err"); e.textContent=msg; e.classList.add("show");
+  clearTimeout(errT); errT=setTimeout(function(){ e.classList.remove("show"); },3200);
+}
+$("next").addEventListener("click",function(){
+  var m=missing();
+  if(m.length){
+    var first=rowOf[m[0].id];
+    first.scrollIntoView({block:"center",behavior:"smooth"});
+    first.classList.add("flash");
+    setTimeout(function(){ first.classList.remove("flash"); },1600);
+    showErr(m.length+"件が未入力です（"+m.map(function(o){return o.short;}).join("、")+"）");
+    return;
+  }
+  if(!state.strokes.length){
+    showErr("確認サインが未記入です");
+    $("signbtn").scrollIntoView({block:"center",behavior:"smooth"});
+    return;
+  }
+  showErr("試作のためここまでです（署名 "+signKb()+" KB）");
+});
 
-/* ---------- 調整パネル ---------- */
-var PENDING_COLORS = ["#FFF8E3", "#FFF3D0", "#FFEBB8", "#FFE29E"];
+var COLORS=["#FFF8E3","#FFF3D0","#FFEBB8","#FFE29E"];
 function buildPanel(){
-  var root = document.documentElement;
-
-  function bind(rangeId, valId, cssVar, suffix, fmt){
-    var r = document.getElementById(rangeId), v = document.getElementById(valId);
-    function apply(){
-      root.style.setProperty(cssVar, fmt ? fmt(r.value) : r.value + suffix);
-      v.textContent = fmt ? fmt(r.value) : r.value + suffix;
-      note();
-    }
-    r.addEventListener("input", apply);
-    apply();
+  var root=document.documentElement;
+  function bind(r,v,vr,suf,fmt){
+    var R=$(r),V=$(v);
+    function ap(){ var s=fmt?fmt(R.value):R.value+suf; root.style.setProperty(vr,s); V.textContent=s; note(); }
+    R.addEventListener("input",ap); ap();
   }
-  bind("p-chip", "v-chip", "--chip-h", "px");
-  bind("p-font", "v-font", "--chip-font", "px");
-  bind("p-sign", "v-sign", "--sign-w", "", function(x){ return parseFloat(x).toFixed(1); });
+  bind("p-chip","v-chip","--chip-h","px");
+  bind("p-font","v-font","--chip-font","px");
+  bind("p-sign","v-sign","--sign-w","",function(x){ return parseFloat(x).toFixed(1); });
 
-  var sw = document.getElementById("swatches");
-  PENDING_COLORS.forEach(function(c, i){
-    var d = el("div", "swatch" + (i === 0 ? " on" : ""));
-    d.style.background = c;
-    d.title = c;
-    d.addEventListener("click", function(){
-      root.style.setProperty("--pending", c);
-      Array.prototype.forEach.call(sw.children, function(x){ x.classList.remove("on"); });
-      d.classList.add("on");
-      document.getElementById("v-pending").textContent = c;
-      note();
+  var swz=$("swatches");
+  COLORS.forEach(function(c,i){
+    var d=el("div","swatch"+(i===0?" on":"")); d.style.background=c;
+    d.addEventListener("click",function(){
+      root.style.setProperty("--pending",c);
+      Array.prototype.forEach.call(swz.children,function(x){ x.classList.remove("on"); });
+      d.classList.add("on"); $("v-pending").textContent=c; note();
     });
-    sw.appendChild(d);
+    swz.appendChild(d);
   });
-  document.getElementById("v-pending").textContent = PENDING_COLORS[0];
+  $("v-pending").textContent=COLORS[0];
 
-  function note(){
-    var cs = getComputedStyle(root);
-    var chip = parseInt(cs.getPropertyValue("--chip-h"), 10);
-    var mm = (chip * 25.4 / 96).toFixed(1);
-    document.getElementById("pnote").textContent =
-      "チップの高さ " + chip + "px ≒ " + mm + "mm。" +
-      "指の操作では 44px(約11.6mm)以上が目安とされています。" +
-      "画面幅 " + window.innerWidth + "px / " +
-      (window.innerWidth >= 820 ? "2列（横向き）" : "1列（縦向き）");
-  }
-  window.addEventListener("resize", note);
-  document.getElementById("tune").addEventListener("click", function(){
-    document.getElementById("panel").classList.toggle("show");
+  $("fit").addEventListener("click",function(){
+    var m=$("main"), R=$("p-chip");
+    var lo=parseInt(R.min,10), hi=parseInt(R.max,10), best=lo, found=false;
+    for(var h=hi; h>=lo; h--){
+      root.style.setProperty("--chip-h",h+"px");
+      if(m.scrollHeight<=m.clientHeight+1){ best=h; found=true; break; }
+    }
+    root.style.setProperty("--chip-h",best+"px");
+    R.value=best; $("v-chip").textContent=best+"px";
+    $("v-fit").textContent = found ? "収まりました（"+best+"px）" : "この画面には収まりません（最小 "+lo+"px でも不足）";
     note();
   });
+
+  function note(){
+    var h=parseInt(getComputedStyle(root).getPropertyValue("--chip-h"),10);
+    var m=$("main");
+    $("pnote").textContent =
+      "チップ "+h+"px ≒ "+(h*25.4/96).toFixed(1)+"mm（指の操作は44px≒11.6mm以上が目安）。"+
+      "画面幅 "+window.innerWidth+"px / "+(window.innerWidth>=900?"2列":"1列")+
+      " / "+(m.scrollHeight<=m.clientHeight+1?"1画面に収まっています":"スクロールが必要です");
+  }
+  window.addEventListener("resize",function(){ setTimeout(note,80); });
+  $("tune").addEventListener("click",function(){ $("panel").classList.toggle("show"); setTimeout(note,60); });
   note();
 }
 
-document.getElementById("note").addEventListener("input", function(){ state.note = this.value; });
-document.getElementById("next").addEventListener("click", function(){
-  alert("試作のためここまでです。\n\n署名: " + (new TextEncoder().encode(signSvgText()).length) + " バイト");
-});
-document.getElementById("dept").textContent = CONFIG.dept;
-
-buildOrganisms();
-buildIncidents();
-buildPanel();
-update();
+$("note").addEventListener("input",function(){ state.note=this.value; });
+$("dept").textContent=CONFIG.dept; $("smdept").textContent=CONFIG.dept;
+buildOrganisms(); buildIncidents(); buildPanel(); update();
 </script>
 </body>
 </html>
