@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0064B4">
+<title>場所選択 試作</title>
+<style>
+  :root{
+    --brand:#0064B4; --brand-press:#004E8C; --brand-tint:#E2EEF8;
+    --bg:#FFFFFF; --surface:#F7F9FA;
+    --line:#D9DEE3; --line-strong:#8B959C;
+    --ink:#1A252D; --ink-soft:#5E6D78;
+    --pending:#FFF8E3; --pending-line:#E8D9A8; --pending-ink:#8A6A12;
+    --alert:#C22F26; --alert-tint:#FDEDEC;
+    --done:#E2EEF8; --done-line:#0064B4;
+    --skip-bg:#EDEFF1; --skip-ink:#8A939C;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; height:100%; overscroll-behavior:none; }
+  body{
+    background:var(--surface); color:var(--ink);
+    font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
+    font-size:15px; line-height:1.5;
+    display:flex; flex-direction:column; height:100dvh; overflow:hidden;
+  }
+
+  header{ background:var(--brand); color:#fff; padding:calc(8px + env(safe-area-inset-top)) 14px 8px; flex-shrink:0; }
+  .hrow{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .htitle{ font-size:17px; font-weight:600; }
+  .hsub{ margin-left:auto; font-size:12.5px; opacity:.95; }
+
+  .selrow{ display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  .selbtn{
+    font-family:inherit; font-size:13px; padding:7px 14px; border-radius:8px;
+    border:1px solid rgba(255,255,255,.55); background:rgba(255,255,255,.12); color:#fff;
+  }
+  .selbtn.on{ background:#fff; color:var(--brand); font-weight:600; border-color:#fff; }
+  .prevtag{ font-size:11.5px; opacity:.9; align-self:center; margin-left:2px; }
+
+  main{ flex:1; overflow-y:auto; padding:10px 14px 14px; -webkit-overflow-scrolling:touch; }
+  .section{ margin-bottom:14px; }
+  .section h2{ font-size:12px; color:var(--ink-soft); font-weight:600; margin:0 0 6px; letter-spacing:.04em; }
+
+  .card{ background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:10px; }
+
+  .wgrid{ display:grid; gap:6px; }
+  .wcell{
+    border-radius:8px; padding:10px 6px; font-size:13px; text-align:center;
+    border:1px solid var(--line-strong); background:var(--bg); color:var(--ink);
+    min-height:52px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    position:relative;
+  }
+  .wcell.empty{ visibility:hidden; }
+  .wcell .mark{ font-size:11px; color:var(--ink-soft); }
+
+  .wcell.progress{ background:var(--pending); border-color:var(--pending-line); }
+  .wcell.progress .mark{ color:var(--pending-ink); }
+  .wcell.done{ background:var(--done); border-color:var(--done-line); color:var(--brand); font-weight:600; }
+  .wcell.done .mark{ color:var(--brand); }
+  .wcell.skip{ background:var(--skip-bg); border-color:var(--line); color:var(--skip-ink); }
+  .wcell.skip .mark{ color:var(--skip-ink); }
+
+  .agrid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .agroup{ border:1px solid var(--line); border-radius:8px; padding:8px; background:var(--bg); }
+  .agroup.off{ opacity:.4; }
+  .agroup .gname{ font-size:12px; font-weight:600; color:var(--ink-soft); margin-bottom:6px; display:flex; align-items:center; gap:4px; }
+  .agroup.today .gname{ color:var(--brand); }
+  .agroup .gname .today-badge{ font-size:10px; background:var(--brand); color:#fff; border-radius:4px; padding:1px 5px; }
+  .acell{ font-size:12px; padding:8px 6px; border-radius:6px; border:1px solid var(--line-strong);
+    background:var(--bg); margin-bottom:5px; text-align:center; }
+  .acell:last-child{ margin-bottom:0; }
+  .agroup.off .acell{ pointer-events:none; }
+  .acell.progress{ background:var(--pending); border-color:var(--pending-line); }
+  .acell.done{ background:var(--done); border-color:var(--done-line); color:var(--brand); font-weight:600; }
+  .acell.skip{ background:var(--skip-bg); color:var(--skip-ink); }
+
+  .legend{ display:flex; gap:12px; flex-wrap:wrap; font-size:11.5px; color:var(--ink-soft); margin-top:10px; }
+  .legend span{ display:inline-flex; align-items:center; gap:4px; }
+  .legend i{ width:14px; height:14px; border-radius:4px; display:inline-block; border:1px solid var(--line-strong); }
+  .legend i.progress{ background:var(--pending); border-color:var(--pending-line); }
+  .legend i.done{ background:var(--done); border-color:var(--done-line); }
+  .legend i.skip{ background:var(--skip-bg); }
+
+  footer{ flex-shrink:0; background:var(--bg); border-top:1px solid var(--line);
+    padding:8px 14px calc(8px + env(safe-area-inset-bottom)); display:flex; align-items:center; gap:10px; font-size:13px; }
+  .btn{ font-family:inherit; font-size:13px; padding:8px 13px; border:1px solid var(--line-strong);
+    background:var(--bg); border-radius:8px; color:var(--ink); }
+  .progtext{ color:var(--ink-soft); }
+  .btn.reset{ margin-left:auto; color:var(--alert); border-color:#E8B4B0; }
+
+  #toast{ display:none; position:fixed; left:50%; bottom:70px; transform:translateX(-50%);
+    background:var(--ink); color:#fff; font-size:13px; padding:9px 16px; border-radius:999px; max-width:88vw; text-align:center; }
+  #toast.show{ display:block; }
+
+  .note{ font-size:11.5px; color:var(--ink-soft); margin-top:8px; line-height:1.6; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hrow">
+    <span class="htitle">場所選択（試作）</span>
+    <span class="hsub" id="rounderTag"></span>
+  </div>
+  <div class="selrow" id="bldgRow"></div>
+  <div class="selrow" id="groupRow"></div>
+</header>
+
+<main>
+  <div class="section">
+    <h2>病棟（毎回まわる）</h2>
+    <div class="card"><div class="wgrid" id="wardGrid"></div></div>
+  </div>
+
+  <div class="section">
+    <h2>4週に1回まわるエリア（今週の組だけ有効）</h2>
+    <div class="agrid" id="areaGrid"></div>
+  </div>
+
+  <div class="legend">
+    <span><i></i>未着手</span>
+    <span><i class="progress"></i>途中</span>
+    <span><i class="done"></i>済み</span>
+    <span><i class="skip"></i>スキップ</span>
+  </div>
+  <div class="note">
+    タップで状態が進みます（未着手→途中→済み→スキップ→未着手）。本番では［3］記録画面を開いて自動的に「途中」「済み」になります。ここでは色と配置だけを確認するための簡易操作です。
+    状態と「前回の組」は端末内（このブラウザのlocalStorage）に保存され、閉じても残ります。
+  </div>
+</main>
+
+<footer>
+  <span class="progtext" id="progText"></span>
+  <button type="button" class="btn reset" id="resetBtn">この館の状態をリセット</button>
+</footer>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+
+var CONFIG = {"_readme":"これはダミーです。実在の施設情報は含みません。本物はこのファイルと同じ構造のまま名前だけ差し替え、リポジトリには入れずに端末へ読み込ませてください。","schemaVersion":2,"roundType":"ICT","configLabel":"サンプル設定（ダミー・v2）","rounders":["見本 一郎","見本 二郎","見本 三郎","見本 四郎","見本 五郎","見本 六子","見本 七子","見本 八子","見本 九子","見本 十子","見本 十一","見本 十二","見本 十三","見本 十四"],"chips":{"values":[0,1,2,3,4],"overflowLabel":"5+","overflowMin":5},"organisms":[{"id":"mrsa","label":"MRSA"},{"id":"mdrp","label":"MDRP（2剤耐性）"},{"id":"esbl","label":"ESBL"},{"id":"cd","label":"CD"},{"id":"cre3","label":"CRE（3剤耐性）"},{"id":"cre_mepm","label":"CRE（メロペネム）"}],"incidents":[{"id":"needlestick","label":"針刺し"},{"id":"exposure","label":"体液曝露"}],"rotation":{"mode":"manual","groups":["A","B","C","D"],"_note":"組は館ごとに独立して進む。日付から自動計算はできない（スキップが起きるため）"},"buildings":[{"id":"bldg-1","label":"本館","gridCols":3,"wards":[{"id":"w-001","label":"1階中","row":1,"col":1},{"id":"w-002","label":"1階東","row":1,"col":2},{"id":"w-003","label":"2階中","row":2,"col":1},{"id":"w-004","label":"2階東","row":2,"col":2},{"id":"w-005","label":"2階南","row":2,"col":3},{"id":"w-006","label":"3階中","row":3,"col":1},{"id":"w-007","label":"3階東","row":3,"col":2},{"id":"w-008","label":"4階東","row":4,"col":2},{"id":"w-009","label":"4階南","row":4,"col":3},{"id":"w-010","label":"5階南","row":5,"col":1},{"id":"w-011","label":"6階中","row":6,"col":1},{"id":"w-012","label":"6階東","row":6,"col":2},{"id":"w-013","label":"見本ICU","row":7,"col":1},{"id":"w-014","label":"見本手術部門","row":7,"col":2},{"id":"w-015","label":"見本救急部門","row":7,"col":3}],"rotationAreas":{"A":[{"id":"a-01","code":"10","label":"見本A組外来1"},{"id":"a-02","code":"11","label":"見本A組外来2"},{"id":"a-03","code":"12","label":"見本A組外来3"},{"id":"a-04","code":"13","label":"見本A組外来4"}],"B":[{"id":"a-05","code":"14","label":"見本B組外来1"},{"id":"a-06","code":"15","label":"見本B組外来2"},{"id":"a-07","code":"16","label":"見本B組外来3"}],"C":[{"id":"a-08","code":"17","label":"見本C組外来1"},{"id":"a-09","code":"18","label":"見本C組外来2"},{"id":"a-10","code":"19","label":"見本C組外来3"}],"D":[{"id":"a-11","code":"20","label":"見本D組外来1"},{"id":"a-12","code":"21","label":"見本D組外来2"},{"id":"a-13","code":"22","label":"見本D組外来3"}]}},{"id":"bldg-2","label":"西・北館","gridCols":3,"wards":[{"id":"w-016","label":"西1階病棟","row":1,"col":1},{"id":"w-017","label":"北1階病棟","row":1,"col":2},{"id":"w-018","label":"西2階病棟","row":2,"col":1},{"id":"w-019","label":"北2階病棟","row":2,"col":2},{"id":"w-020","label":"見本西検査室","row":2,"col":3},{"id":"w-021","label":"西3階病棟","row":3,"col":1},{"id":"w-022","label":"北3階病棟","row":3,"col":2},{"id":"w-023","label":"西4階病棟","row":4,"col":1},{"id":"w-024","label":"北4階病棟","row":4,"col":2},{"id":"w-025","label":"見本北処置室","row":4,"col":3},{"id":"w-026","label":"見本西処置室","row":5,"col":1},{"id":"w-027","label":"見本緩和ケア病棟","row":5,"col":2},{"id":"w-028","label":"見本療養病棟","row":6,"col":1},{"id":"w-029","label":"見本特殊病棟","row":7,"col":1},{"id":"w-030","label":"見本デイケア室","row":7,"col":2}],"rotationAreas":{"A":[{"id":"b-01","code":"50","label":"見本A組外来1"},{"id":"b-02","code":"51","label":"見本A組外来2"},{"id":"b-03","code":"52","label":"見本A組外来3"}],"B":[{"id":"b-04","code":"53","label":"見本B組外来1"}],"C":[{"id":"b-05","code":"54","label":"見本C組外来1"},{"id":"b-06","code":"55","label":"見本C組外来2"}],"D":[{"id":"b-07","code":"56","label":"見本D組外来1"},{"id":"b-08","code":"57","label":"見本D組外来2"},{"id":"b-09","code":"58","label":"見本D組外来3"}]}}]};
+
+var LS_PREV  = "roundproto_prevGroup";   // { bldgId: "A" }
+var LS_STATE = "roundproto_wardState";   // { wardId: "progress"|"done"|"skip" }
+
+var currentBldg = CONFIG.buildings[0].id;
+var currentGroup = null;
+
+function $(id){ return document.getElementById(id); }
+function el(t,c,x){ var e=document.createElement(t); if(c)e.className=c; if(x!=null)e.textContent=x; return e; }
+
+function loadPrev(){ try{ return JSON.parse(localStorage.getItem(LS_PREV))||{}; }catch(e){ return {}; } }
+function savePrev(o){ localStorage.setItem(LS_PREV, JSON.stringify(o)); }
+function loadState(){ try{ return JSON.parse(localStorage.getItem(LS_STATE))||{}; }catch(e){ return {}; } }
+function saveState(o){ localStorage.setItem(LS_STATE, JSON.stringify(o)); }
+
+function bldgOf(id){ return CONFIG.buildings.find(function(b){ return b.id===id; }); }
+
+/* ---------- 次に来るはずの組（前回の次） ---------- */
+function nextGroupFor(bldgId){
+  var groups = CONFIG.rotation.groups;
+  var prev = loadPrev()[bldgId];
+  if(!prev) return null;
+  var i = groups.indexOf(prev);
+  if(i<0) return null;
+  return groups[(i+1) % groups.length];
+}
+
+/* ---------- ヘッダー：館・組 ---------- */
+function renderHeader(){
+  $("rounderTag").textContent = "ラウンド者: " + CONFIG.rounders.slice(0,3).join("・");
+
+  var bRow = $("bldgRow"); bRow.innerHTML="";
+  CONFIG.buildings.forEach(function(b){
+    var btn = el("button","selbtn"+(b.id===currentBldg?" on":""), b.label);
+    btn.type="button";
+    btn.addEventListener("click",function(){
+      currentBldg = b.id; currentGroup = null;
+      renderHeader(); renderGroups(); renderWards(); renderAreas(); updateFooter();
+    });
+    bRow.appendChild(btn);
+  });
+
+  renderGroups();
+}
+function renderGroups(){
+  var gRow = $("groupRow"); gRow.innerHTML="";
+  var groups = CONFIG.rotation.groups;
+  var prev = loadPrev()[currentBldg];
+  var suggested = nextGroupFor(currentBldg);
+
+  groups.forEach(function(g){
+    var btn = el("button","selbtn"+(g===currentGroup?" on":""), g);
+    btn.type="button";
+    btn.addEventListener("click",function(){
+      currentGroup = g;
+      var p = loadPrev(); p[currentBldg]=g; savePrev(p);
+      renderGroups(); renderAreas();
+    });
+    gRow.appendChild(btn);
+  });
+
+  var tag = el("span","prevtag");
+  if(prev){
+    tag.textContent = "前回: " + prev + (suggested ? "（次は " + suggested + " のはず）" : "");
+  } else {
+    tag.textContent = "前回の記録なし";
+  }
+  gRow.appendChild(tag);
+
+  if(!currentGroup && suggested) currentGroup = suggested;
+  if(!currentGroup) currentGroup = groups[0];
+}
+
+/* ---------- 病棟グリッド ---------- */
+var STATE_ORDER = ["", "progress", "done", "skip"];
+function cycleState(id){
+  var st = loadState();
+  var cur = st[id] || "";
+  var idx = (STATE_ORDER.indexOf(cur)+1) % STATE_ORDER.length;
+  if(STATE_ORDER[idx]==="") delete st[id]; else st[id]=STATE_ORDER[idx];
+  saveState(st);
+  return st[id] || "";
+}
+function markLabel(state){
+  if(state==="progress") return "途中";
+  if(state==="done") return "済み ✓";
+  if(state==="skip") return "スキップ";
+  return "";
+}
+
+function renderWards(){
+  var b = bldgOf(currentBldg);
+  var host = $("wardGrid");
+  host.style.gridTemplateColumns = "repeat("+b.gridCols+",1fr)";
+  host.innerHTML = "";
+  var maxRow = Math.max.apply(null, b.wards.map(function(w){return w.row;}));
+  var state = loadState();
+
+  for(var r=1; r<=maxRow; r++){
+    for(var c=1; c<=b.gridCols; c++){
+      var w = b.wards.find(function(x){ return x.row===r && x.col===c; });
+      if(!w){ host.appendChild(el("div","wcell empty")); continue; }
+      var st = state[w.id] || "";
+      var cell = el("div","wcell"+(st?" "+st:""));
+      cell.appendChild(el("div",null,w.label));
+      var mk = el("div","mark", markLabel(st));
+      cell.appendChild(mk);
+      cell.dataset.id = w.id;
+      cell.addEventListener("click",function(){
+        var id=this.dataset.id, ns=cycleState(id);
+        this.className = "wcell"+(ns?" "+ns:"");
+        this.querySelector(".mark").textContent = markLabel(ns);
+        updateFooter();
+      });
+      host.appendChild(cell);
+    }
+  }
+}
+
+/* ---------- 4週1巡エリア ---------- */
+function renderAreas(){
+  var b = bldgOf(currentBldg);
+  var host = $("areaGrid");
+  host.innerHTML = "";
+  var state = loadState();
+
+  CONFIG.rotation.groups.forEach(function(g){
+    var isToday = (g===currentGroup);
+    var grp = el("div","agroup"+(isToday?" today":" off"));
+    var nameRow = el("div","gname");
+    nameRow.appendChild(document.createTextNode("組 "+g));
+    if(isToday) nameRow.appendChild(el("span","today-badge","本日"));
+    grp.appendChild(nameRow);
+
+    (b.rotationAreas[g]||[]).forEach(function(a){
+      var st = state[a.id] || "";
+      var cell = el("div","acell"+(st?" "+st:""), (a.code?a.code+" ":"")+a.label);
+      cell.dataset.id = a.id;
+      if(isToday){
+        cell.addEventListener("click",function(){
+          var id=this.dataset.id, ns=cycleState(id);
+          this.className = "acell"+(ns?" "+ns:"");
+          this.textContent = (a.code?a.code+" ":"")+a.label + (ns?"　"+markLabel(ns):"");
+          updateFooter();
+        });
+      }
+      grp.appendChild(cell);
+    });
+    if(!(b.rotationAreas[g]||[]).length) grp.appendChild(el("div","mark","（該当なし）"));
+    host.appendChild(grp);
+  });
+}
+
+/* ---------- 進捗・リセット ---------- */
+function allIdsOf(bldgId){
+  var b = bldgOf(bldgId);
+  var ids = b.wards.map(function(w){return w.id;});
+  Object.keys(b.rotationAreas).forEach(function(g){
+    b.rotationAreas[g].forEach(function(a){ ids.push(a.id); });
+  });
+  return ids;
+}
+function updateFooter(){
+  var ids = allIdsOf(currentBldg);
+  var state = loadState();
+  var done=0, skip=0;
+  ids.forEach(function(id){
+    if(state[id]==="done") done++;
+    if(state[id]==="skip") skip++;
+  });
+  $("progText").textContent = bldgOf(currentBldg).label + "　済み "+done+" ／ スキップ "+skip+" ／ 全 "+ids.length;
+}
+$("resetBtn").addEventListener("click",function(){
+  if(!confirm(bldgOf(currentBldg).label+" の状態をリセットします。よろしいですか？")) return;
+  var state = loadState();
+  allIdsOf(currentBldg).forEach(function(id){ delete state[id]; });
+  saveState(state);
+  renderWards(); renderAreas(); updateFooter();
+  toast("リセットしました");
+});
+
+var toastT=null;
+function toast(msg){
+  var t=$("toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(toastT); toastT=setTimeout(function(){ t.classList.remove("show"); },2000);
+}
+
+renderHeader();
+renderWards();
+renderAreas();
+updateFooter();
+</script>
+</body>
+</html>
