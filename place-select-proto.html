@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0064B4">
-<title>場所選択 試作</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ICT">
+<title>ICTラウンド 試作</title>
 <style>
   :root{
     --brand:#0064B4; --brand-press:#004E8C; --brand-tint:#E2EEF8;
@@ -12,9 +14,10 @@
     --line:#D9DEE3; --line-strong:#8B959C;
     --ink:#1A252D; --ink-soft:#5E6D78;
     --pending:#FFF8E3; --pending-line:#E8D9A8; --pending-ink:#8A6A12;
-    --alert:#C22F26; --alert-tint:#FDEDEC;
+    --alert:#C22F26; --alert-tint:#FDEDEC; --alert-line:#F0C4C1;
     --done:#E2EEF8; --done-line:#0064B4;
     --skip-bg:#EDEFF1; --skip-ink:#8A939C;
+    --chip-h:43px; --chip-font:18px; --sign-w:3;
   }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body{ margin:0; height:100%; overscroll-behavior:none; }
@@ -24,36 +27,33 @@
     font-size:15px; line-height:1.5;
     display:flex; flex-direction:column; height:100dvh; overflow:hidden;
   }
+  button{ font-family:inherit; }
 
-  header{ background:var(--brand); color:#fff; padding:calc(8px + env(safe-area-inset-top)) 14px 8px; flex-shrink:0; }
-  .hrow{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-  .htitle{ font-size:17px; font-weight:600; }
-  .hsub{ margin-left:auto; font-size:12.5px; opacity:.95; }
-
-  .selrow{ display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
-  .selbtn{
-    font-family:inherit; font-size:13px; padding:7px 14px; border-radius:8px;
-    border:1px solid rgba(255,255,255,.55); background:rgba(255,255,255,.12); color:#fff;
-  }
-  .selbtn.on{ background:#fff; color:var(--brand); font-weight:600; border-color:#fff; }
-  .prevtag{ font-size:11.5px; opacity:.9; align-self:center; margin-left:2px; }
+  /* ---- 共通ヘッダー ---- */
+  header{ background:var(--brand); color:#fff; flex-shrink:0;
+    padding:calc(8px + env(safe-area-inset-top)) 14px 8px; }
+  .hrow{ display:flex; align-items:center; gap:10px; }
+  .hplace{ font-size:17px; font-weight:600; }
+  .hgrp{ font-size:13px; background:rgba(255,255,255,.2); border-radius:6px; padding:2px 9px; }
+  .hspace{ flex:1; }
+  .hcount{ font-size:15px; font-variant-numeric:tabular-nums; }
+  .gear{ background:none; border:none; color:#fff; font-size:19px; padding:3px 6px; cursor:pointer; line-height:1; }
+  .hsub{ font-size:12px; margin-top:2px; opacity:.95; }
+  .backbtn{ background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.5); color:#fff;
+    border-radius:7px; font-size:13px; padding:5px 11px; }
 
   main{ flex:1; overflow-y:auto; padding:10px 14px 14px; -webkit-overflow-scrolling:touch; }
-  .section{ margin-bottom:14px; }
-  .section h2{ font-size:12px; color:var(--ink-soft); font-weight:600; margin:0 0 6px; letter-spacing:.04em; }
+  .section{ margin-bottom:12px; }
+  .section > h2{ font-size:12px; color:var(--ink-soft); font-weight:600; margin:0 0 6px; letter-spacing:.04em; }
+  .card{ background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
 
-  .card{ background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:10px; }
-
+  /* ---- 場所選択 ---- */
   .wgrid{ display:grid; gap:6px; }
-  .wcell{
-    border-radius:8px; padding:10px 6px; font-size:13px; text-align:center;
+  .wcell{ border-radius:8px; padding:9px 5px; font-size:13px; text-align:center;
     border:1px solid var(--line-strong); background:var(--bg); color:var(--ink);
-    min-height:52px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
-    position:relative;
-  }
+    min-height:50px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; }
   .wcell.empty{ visibility:hidden; }
   .wcell .mark{ font-size:11px; color:var(--ink-soft); }
-
   .wcell.progress{ background:var(--pending); border-color:var(--pending-line); }
   .wcell.progress .mark{ color:var(--pending-ink); }
   .wcell.done{ background:var(--done); border-color:var(--done-line); color:var(--brand); font-weight:600; }
@@ -63,275 +63,713 @@
 
   .agrid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
   .agroup{ border:1px solid var(--line); border-radius:8px; padding:8px; background:var(--bg); }
-  .agroup.off{ opacity:.4; }
-  .agroup .gname{ font-size:12px; font-weight:600; color:var(--ink-soft); margin-bottom:6px; display:flex; align-items:center; gap:4px; }
+  .agroup.off{ opacity:.38; }
+  .agroup .gname{ font-size:12px; font-weight:600; color:var(--ink-soft); margin-bottom:6px;
+    display:flex; align-items:center; gap:4px; }
   .agroup.today .gname{ color:var(--brand); }
-  .agroup .gname .today-badge{ font-size:10px; background:var(--brand); color:#fff; border-radius:4px; padding:1px 5px; }
-  .acell{ font-size:12px; padding:8px 6px; border-radius:6px; border:1px solid var(--line-strong);
+  .badge{ font-size:10px; background:var(--brand); color:#fff; border-radius:4px; padding:1px 5px; }
+  .acell{ font-size:12px; padding:8px 5px; border-radius:6px; border:1px solid var(--line-strong);
     background:var(--bg); margin-bottom:5px; text-align:center; }
   .acell:last-child{ margin-bottom:0; }
   .agroup.off .acell{ pointer-events:none; }
   .acell.progress{ background:var(--pending); border-color:var(--pending-line); }
   .acell.done{ background:var(--done); border-color:var(--done-line); color:var(--brand); font-weight:600; }
   .acell.skip{ background:var(--skip-bg); color:var(--skip-ink); }
+  .amark{ font-size:10px; display:block; }
 
-  .legend{ display:flex; gap:12px; flex-wrap:wrap; font-size:11.5px; color:var(--ink-soft); margin-top:10px; }
+  .legend{ display:flex; gap:12px; flex-wrap:wrap; font-size:11.5px; color:var(--ink-soft); margin-top:4px; }
   .legend span{ display:inline-flex; align-items:center; gap:4px; }
-  .legend i{ width:14px; height:14px; border-radius:4px; display:inline-block; border:1px solid var(--line-strong); }
+  .legend i{ width:13px; height:13px; border-radius:4px; display:inline-block; border:1px solid var(--line-strong); }
   .legend i.progress{ background:var(--pending); border-color:var(--pending-line); }
   .legend i.done{ background:var(--done); border-color:var(--done-line); }
   .legend i.skip{ background:var(--skip-bg); }
 
+  /* ---- 記録 ---- */
+  .row{ padding:4px 6px; border-radius:8px; margin:0 -6px; }
+  .row.pending{ background:var(--pending); box-shadow:0 0 0 1px var(--pending-line) inset; }
+  .row.flash{ box-shadow:0 0 0 3px var(--alert) inset; }
+  .rlabel{ display:flex; align-items:baseline; gap:8px; font-size:14px; margin-bottom:4px; }
+  .rlabel .prev{ font-size:12.5px; color:var(--ink-soft); }
+  .row.pending .rlabel .prev{ color:var(--pending-ink); font-weight:600; }
+  .chips{ display:flex; gap:5px; }
+  .chip{ flex:1; height:var(--chip-h); min-width:0; font-size:var(--chip-font); color:var(--ink);
+    background:var(--bg); border:1px solid var(--line-strong); border-radius:8px;
+    display:flex; align-items:center; justify-content:center; padding:0; }
+  .chip:active{ background:var(--brand-tint); }
+  .chip.on{ background:var(--brand); border-color:var(--brand); color:#fff; font-weight:600; }
+  .chip.yes.on{ background:var(--alert); border-color:var(--alert); }
+  .over{ display:none; gap:8px; align-items:center; }
+  .over.show{ display:flex; }
+  .over .back{ flex:0 0 auto; padding:0 14px; height:var(--chip-h); border:1px solid var(--line-strong);
+    background:var(--bg); border-radius:8px; font-size:13px; color:var(--ink); }
+  .over input{ width:110px; height:var(--chip-h); font-family:inherit; font-size:var(--chip-font);
+    text-align:center; border:1px solid var(--brand); border-radius:8px; color:var(--ink); }
+  @media (min-width:900px){
+    .rec2{ display:grid; grid-template-columns:1.5fr 1fr; gap:12px; align-items:start; }
+    .row.simple{ display:flex; align-items:center; gap:10px; }
+    .row.simple .rlabel{ width:150px; flex-shrink:0; margin-bottom:0; display:block; line-height:1.3; }
+    .row.simple .rlabel .prev{ display:block; }
+    .row.simple .chips, .row.simple .over{ flex:1; }
+  }
+
+  textarea{ width:100%; font-family:inherit; font-size:16px; color:var(--ink);
+    border:1px solid var(--line-strong); border-radius:8px; padding:9px; resize:none;
+    min-height:70px; line-height:1.5; }
+  .detail{ display:none; margin-top:6px; }
+  .detail.show{ display:block; }
+  .detail textarea{ min-height:56px; background:var(--alert-tint); border-color:var(--alert-line); }
+
+  .foldbtn{ width:100%; text-align:left; border:1px dashed var(--line-strong); background:var(--bg);
+    border-radius:8px; padding:10px 12px; font-size:14px; color:var(--ink-soft); }
+  .foldbtn.filled{ border-style:solid; border-color:var(--brand); color:var(--ink); background:var(--brand-tint); }
+  .foldbtn .peek{ display:block; font-size:12px; color:var(--ink-soft); margin-top:3px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  .signbtn{ width:100%; height:80px; font-size:16px; border:1px dashed var(--line-strong);
+    border-radius:8px; background:var(--bg); color:var(--ink-soft);
+    display:flex; align-items:center; justify-content:center; padding:6px; overflow:hidden; }
+  .signbtn.done{ border-style:solid; border-color:var(--brand); background:var(--brand-tint); }
+  .signbtn svg{ width:100%; height:100%; }
+  .signmeta{ font-size:11.5px; color:var(--ink-soft); margin-top:5px; }
+
   footer{ flex-shrink:0; background:var(--bg); border-top:1px solid var(--line);
-    padding:8px 14px calc(8px + env(safe-area-inset-bottom)); display:flex; align-items:center; gap:10px; font-size:13px; }
-  .btn{ font-family:inherit; font-size:13px; padding:8px 13px; border:1px solid var(--line-strong);
+    padding:8px 14px calc(8px + env(safe-area-inset-bottom)); display:flex; align-items:center; gap:10px; }
+  .btn{ font-size:13px; padding:9px 13px; border:1px solid var(--line-strong);
     background:var(--bg); border-radius:8px; color:var(--ink); }
-  .progtext{ color:var(--ink-soft); }
-  .btn.reset{ margin-left:auto; color:var(--alert); border-color:#E8B4B0; }
+  .btn.danger{ color:var(--alert); border-color:#E8B4B0; }
+  .primary{ margin-left:auto; font-size:16px; font-weight:600; background:var(--brand);
+    color:#fff; border:none; border-radius:8px; padding:12px 22px; }
+  .ftext{ font-size:12.5px; color:var(--ink-soft); }
 
-  #toast{ display:none; position:fixed; left:50%; bottom:70px; transform:translateX(-50%);
-    background:var(--ink); color:#fff; font-size:13px; padding:9px 16px; border-radius:999px; max-width:88vw; text-align:center; }
+  /* ---- オーバーレイ ---- */
+  .overlay{ display:none; position:fixed; inset:0; z-index:100; background:var(--bg);
+    flex-direction:column; padding:calc(10px + env(safe-area-inset-top)) 14px calc(10px + env(safe-area-inset-bottom)); }
+  .overlay.show{ display:flex; }
+  .ohead{ display:flex; align-items:baseline; gap:12px; margin-bottom:10px; }
+  .ohead .t{ font-size:17px; font-weight:600; }
+  .ohead .d{ font-size:13px; color:var(--ink-soft); }
+  .obody{ flex:1; overflow-y:auto; }
+  .ofoot{ display:flex; align-items:center; gap:10px; margin-top:10px; }
+  .ofoot .done{ margin-left:auto; font-size:16px; font-weight:600;
+    background:var(--brand); color:#fff; border:none; border-radius:8px; padding:12px 26px; }
+
+  .smwrap{ flex:1; position:relative; display:flex; }
+  #signbig{ flex:1; width:100%; display:block; touch-action:none;
+    background:var(--bg); border:1px solid var(--line-strong); border-radius:10px; }
+  .smhint{ position:absolute; left:0; right:0; top:50%; text-align:center;
+    color:var(--ink-soft); font-size:15px; pointer-events:none; }
+  .smhint.hide{ display:none; }
+
+  .pickgrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:6px; }
+  .pick{ font-size:13px; padding:10px 8px; border:1px solid var(--line-strong); border-radius:8px;
+    background:var(--bg); color:var(--ink); text-align:center; }
+  .pick.on{ background:var(--brand); border-color:var(--brand); color:#fff; font-weight:600; }
+  .pick:disabled{ opacity:.35; }
+  .fl{ display:block; font-size:12px; font-weight:600; color:var(--ink-soft); margin:14px 0 6px; }
+  .prevtag{ font-size:12px; color:var(--ink-soft); margin-top:6px; }
+
+  #toast{ display:none; position:fixed; left:50%; bottom:76px; transform:translateX(-50%);
+    background:var(--ink); color:#fff; font-size:13.5px; padding:10px 18px; border-radius:999px;
+    max-width:88vw; text-align:center; z-index:200; }
   #toast.show{ display:block; }
-
-  .note{ font-size:11.5px; color:var(--ink-soft); margin-top:8px; line-height:1.6; }
+  #toast.alert{ background:var(--alert); }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="hrow">
-    <span class="htitle">場所選択（試作）</span>
-    <span class="hsub" id="rounderTag"></span>
-  </div>
-  <div class="selrow" id="bldgRow"></div>
-  <div class="selrow" id="groupRow"></div>
+  <div class="hrow" id="hrow"></div>
+  <div class="hsub" id="hsub"></div>
 </header>
 
-<main>
-  <div class="section">
-    <h2>病棟（毎回まわる）</h2>
-    <div class="card"><div class="wgrid" id="wardGrid"></div></div>
-  </div>
+<main id="main"></main>
 
-  <div class="section">
-    <h2>4週に1回まわるエリア（今週の組だけ有効）</h2>
-    <div class="agrid" id="areaGrid"></div>
-  </div>
+<footer id="foot"></footer>
 
-  <div class="legend">
-    <span><i></i>未着手</span>
-    <span><i class="progress"></i>途中</span>
-    <span><i class="done"></i>済み</span>
-    <span><i class="skip"></i>スキップ</span>
+<!-- 設定（①） -->
+<div class="overlay" id="setup">
+  <div class="ohead"><span class="t">ラウンドの設定</span><span class="d" id="setupDate"></span></div>
+  <div class="obody">
+    <label class="fl">ラウンド者（3名まで）</label>
+    <div class="pickgrid" id="rounderPick"></div>
+    <label class="fl">館</label>
+    <div class="pickgrid" id="bldgPick" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))"></div>
+    <label class="fl">本日の外来・検査エリア</label>
+    <div class="pickgrid" id="groupPick" style="grid-template-columns:repeat(4,1fr)"></div>
+    <div class="prevtag" id="prevTag"></div>
   </div>
-  <div class="note">
-    タップで状態が進みます（未着手→途中→済み→スキップ→未着手）。本番では［3］記録画面を開いて自動的に「途中」「済み」になります。ここでは色と配置だけを確認するための簡易操作です。
-    状態と「前回の組」は端末内（このブラウザのlocalStorage）に保存され、閉じても残ります。
+  <div class="ofoot">
+    <button type="button" class="btn danger" id="resetAll">記録を全部消す</button>
+    <button type="button" class="done" id="setupDone">この設定で始める</button>
   </div>
-</main>
+</div>
 
-<footer>
-  <span class="progtext" id="progText"></span>
-  <button type="button" class="btn reset" id="resetBtn">この館の状態をリセット</button>
-</footer>
+<!-- 署名 -->
+<div class="overlay" id="signmode">
+  <div class="ohead"><span class="t">確認サイン</span><span class="d" id="smPlace"></span></div>
+  <div class="smwrap">
+    <svg id="signbig" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="smhint" id="smhint">ここに署名してください</div>
+  </div>
+  <div class="ofoot">
+    <button type="button" class="btn" id="smclear">消す</button>
+    <span id="sminfo" style="font-size:12px;color:var(--ink-soft)"></span>
+    <button type="button" class="done" id="smdone">完了</button>
+  </div>
+</div>
 
 <div id="toast"></div>
 
 <script>
 "use strict";
 
-var CONFIG = {"_readme":"これはダミーです。実在の施設情報は含みません。本物はこのファイルと同じ構造のまま名前だけ差し替え、リポジトリには入れずに端末へ読み込ませてください。","schemaVersion":2,"roundType":"ICT","configLabel":"サンプル設定（ダミー・v2）","rounders":["見本 一郎","見本 二郎","見本 三郎","見本 四郎","見本 五郎","見本 六子","見本 七子","見本 八子","見本 九子","見本 十子","見本 十一","見本 十二","見本 十三","見本 十四"],"chips":{"values":[0,1,2,3,4],"overflowLabel":"5+","overflowMin":5},"organisms":[{"id":"mrsa","label":"MRSA"},{"id":"mdrp","label":"MDRP（2剤耐性）"},{"id":"esbl","label":"ESBL"},{"id":"cd","label":"CD"},{"id":"cre3","label":"CRE（3剤耐性）"},{"id":"cre_mepm","label":"CRE（メロペネム）"}],"incidents":[{"id":"needlestick","label":"針刺し"},{"id":"exposure","label":"体液曝露"}],"rotation":{"mode":"manual","groups":["A","B","C","D"],"_note":"組は館ごとに独立して進む。日付から自動計算はできない（スキップが起きるため）"},"buildings":[{"id":"bldg-1","label":"本館","gridCols":3,"wards":[{"id":"w-001","label":"1階中","row":1,"col":1},{"id":"w-002","label":"1階東","row":1,"col":2},{"id":"w-003","label":"2階中","row":2,"col":1},{"id":"w-004","label":"2階東","row":2,"col":2},{"id":"w-005","label":"2階南","row":2,"col":3},{"id":"w-006","label":"3階中","row":3,"col":1},{"id":"w-007","label":"3階東","row":3,"col":2},{"id":"w-008","label":"4階東","row":4,"col":2},{"id":"w-009","label":"4階南","row":4,"col":3},{"id":"w-010","label":"5階南","row":5,"col":1},{"id":"w-011","label":"6階中","row":6,"col":1},{"id":"w-012","label":"6階東","row":6,"col":2},{"id":"w-013","label":"見本ICU","row":7,"col":1},{"id":"w-014","label":"見本手術部門","row":7,"col":2},{"id":"w-015","label":"見本救急部門","row":7,"col":3}],"rotationAreas":{"A":[{"id":"a-01","code":"10","label":"見本A組外来1"},{"id":"a-02","code":"11","label":"見本A組外来2"},{"id":"a-03","code":"12","label":"見本A組外来3"},{"id":"a-04","code":"13","label":"見本A組外来4"}],"B":[{"id":"a-05","code":"14","label":"見本B組外来1"},{"id":"a-06","code":"15","label":"見本B組外来2"},{"id":"a-07","code":"16","label":"見本B組外来3"}],"C":[{"id":"a-08","code":"17","label":"見本C組外来1"},{"id":"a-09","code":"18","label":"見本C組外来2"},{"id":"a-10","code":"19","label":"見本C組外来3"}],"D":[{"id":"a-11","code":"20","label":"見本D組外来1"},{"id":"a-12","code":"21","label":"見本D組外来2"},{"id":"a-13","code":"22","label":"見本D組外来3"}]}},{"id":"bldg-2","label":"西・北館","gridCols":3,"wards":[{"id":"w-016","label":"西1階病棟","row":1,"col":1},{"id":"w-017","label":"北1階病棟","row":1,"col":2},{"id":"w-018","label":"西2階病棟","row":2,"col":1},{"id":"w-019","label":"北2階病棟","row":2,"col":2},{"id":"w-020","label":"見本西検査室","row":2,"col":3},{"id":"w-021","label":"西3階病棟","row":3,"col":1},{"id":"w-022","label":"北3階病棟","row":3,"col":2},{"id":"w-023","label":"西4階病棟","row":4,"col":1},{"id":"w-024","label":"北4階病棟","row":4,"col":2},{"id":"w-025","label":"見本北処置室","row":4,"col":3},{"id":"w-026","label":"見本西処置室","row":5,"col":1},{"id":"w-027","label":"見本緩和ケア病棟","row":5,"col":2},{"id":"w-028","label":"見本療養病棟","row":6,"col":1},{"id":"w-029","label":"見本特殊病棟","row":7,"col":1},{"id":"w-030","label":"見本デイケア室","row":7,"col":2}],"rotationAreas":{"A":[{"id":"b-01","code":"50","label":"見本A組外来1"},{"id":"b-02","code":"51","label":"見本A組外来2"},{"id":"b-03","code":"52","label":"見本A組外来3"}],"B":[{"id":"b-04","code":"53","label":"見本B組外来1"}],"C":[{"id":"b-05","code":"54","label":"見本C組外来1"},{"id":"b-06","code":"55","label":"見本C組外来2"}],"D":[{"id":"b-07","code":"56","label":"見本D組外来1"},{"id":"b-08","code":"57","label":"見本D組外来2"},{"id":"b-09","code":"58","label":"見本D組外来3"}]}}]};
+var CONFIG = {"_readme": "これはダミーです。実在の施設情報は含みません。本物はこのファイルと同じ構造のまま名前だけ差し替え、リポジトリには入れずに端末へ読み込ませてください。", "schemaVersion": 3, "roundType": "ICT", "configLabel": "サンプル設定（ダミー・v3）", "rounders": ["見本 一郎", "見本 二郎", "見本 三郎", "見本 四郎", "見本 五郎", "見本 六子", "見本 七子", "見本 八子", "見本 九子", "見本 十子", "見本 十一", "見本 十二", "見本 十三", "見本 十四"], "chips": {"values": [0, 1, 2, 3, 4], "overflowLabel": "5+", "overflowMin": 5}, "organisms": [{"id": "mrsa", "label": "MRSA", "short": "MRSA"}, {"id": "mdrp", "label": "MDRP", "short": "MDRP"}, {"id": "pa2", "label": "2剤耐性緑膿菌", "short": "2剤耐性"}, {"id": "esbl", "label": "ESBL", "short": "ESBL"}, {"id": "cdtox", "label": "CDトキシン", "short": "CD"}, {"id": "cre_non", "label": "CRE non-CPE", "short": "non-CPE"}, {"id": "cre_cpe", "label": "CRE CPE", "short": "CPE"}, {"id": "mbl", "label": "メタロβラクタマーゼ産生菌", "short": "メタロβ"}], "incidents": [{"id": "consult", "label": "相談", "short": "相談"}], "rotation": {"mode": "manual", "groups": ["A", "B", "C", "D"], "_note": "組は館ごとに独立して進む。日付から自動計算はできない（スキップが起きるため）"}, "buildings": [{"id": "bldg-1", "label": "本館", "gridCols": 3, "wards": [{"id": "w-001", "label": "1階中", "row": 1, "col": 1}, {"id": "w-002", "label": "1階東", "row": 1, "col": 2}, {"id": "w-003", "label": "2階中", "row": 2, "col": 1}, {"id": "w-004", "label": "2階東", "row": 2, "col": 2}, {"id": "w-005", "label": "2階南", "row": 2, "col": 3}, {"id": "w-006", "label": "3階中", "row": 3, "col": 1}, {"id": "w-007", "label": "3階東", "row": 3, "col": 2}, {"id": "w-008", "label": "4階東", "row": 4, "col": 2}, {"id": "w-009", "label": "4階南", "row": 4, "col": 3}, {"id": "w-010", "label": "5階南", "row": 5, "col": 1}, {"id": "w-011", "label": "6階中", "row": 6, "col": 1}, {"id": "w-012", "label": "6階東", "row": 6, "col": 2}, {"id": "w-013", "label": "見本ICU", "row": 7, "col": 1}, {"id": "w-014", "label": "見本手術部門", "row": 7, "col": 2}, {"id": "w-015", "label": "見本救急部門", "row": 7, "col": 3}], "rotationAreas": {"A": [{"id": "a-01", "code": "10", "label": "見本A組外来1"}, {"id": "a-02", "code": "11", "label": "見本A組外来2"}, {"id": "a-03", "code": "12", "label": "見本A組外来3"}, {"id": "a-04", "code": "13", "label": "見本A組外来4"}], "B": [{"id": "a-05", "code": "14", "label": "見本B組外来1"}, {"id": "a-06", "code": "15", "label": "見本B組外来2"}, {"id": "a-07", "code": "16", "label": "見本B組外来3"}], "C": [{"id": "a-08", "code": "17", "label": "見本C組外来1"}, {"id": "a-09", "code": "18", "label": "見本C組外来2"}, {"id": "a-10", "code": "19", "label": "見本C組外来3"}], "D": [{"id": "a-11", "code": "20", "label": "見本D組外来1"}, {"id": "a-12", "code": "21", "label": "見本D組外来2"}, {"id": "a-13", "code": "22", "label": "見本D組外来3"}]}}, {"id": "bldg-2", "label": "西・北館", "gridCols": 3, "wards": [{"id": "w-016", "label": "西1階病棟", "row": 1, "col": 1}, {"id": "w-017", "label": "北1階病棟", "row": 1, "col": 2}, {"id": "w-018", "label": "西2階病棟", "row": 2, "col": 1}, {"id": "w-019", "label": "北2階病棟", "row": 2, "col": 2}, {"id": "w-020", "label": "見本西検査室", "row": 2, "col": 3}, {"id": "w-021", "label": "西3階病棟", "row": 3, "col": 1}, {"id": "w-022", "label": "北3階病棟", "row": 3, "col": 2}, {"id": "w-023", "label": "西4階病棟", "row": 4, "col": 1}, {"id": "w-024", "label": "北4階病棟", "row": 4, "col": 2}, {"id": "w-025", "label": "見本北処置室", "row": 4, "col": 3}, {"id": "w-026", "label": "見本西処置室", "row": 5, "col": 1}, {"id": "w-027", "label": "見本緩和ケア病棟", "row": 5, "col": 2}, {"id": "w-028", "label": "見本療養病棟", "row": 6, "col": 1}, {"id": "w-029", "label": "見本特殊病棟", "row": 7, "col": 1}, {"id": "w-030", "label": "見本デイケア室", "row": 7, "col": 2}], "rotationAreas": {"A": [{"id": "b-01", "code": "50", "label": "見本A組外来1"}, {"id": "b-02", "code": "51", "label": "見本A組外来2"}, {"id": "b-03", "code": "52", "label": "見本A組外来3"}], "B": [{"id": "b-04", "code": "53", "label": "見本B組外来1"}], "C": [{"id": "b-05", "code": "54", "label": "見本C組外来1"}, {"id": "b-06", "code": "55", "label": "見本C組外来2"}], "D": [{"id": "b-07", "code": "56", "label": "見本D組外来1"}, {"id": "b-08", "code": "57", "label": "見本D組外来2"}, {"id": "b-09", "code": "58", "label": "見本D組外来3"}]}}], "placeRules": {"_note": "病棟は菌の人数を記録する。組エリア（外来・検査部門）は入院患者がいないため菌の記録が不要で、相談・備考・サインのみ。", "wards": {"organisms": true}, "rotationAreas": {"organisms": false}}};
 
-var LS_PREV  = "roundproto_prevGroup";   // { bldgId: "A" }
-var LS_STATE = "roundproto_wardState";   // { wardId: "progress"|"done"|"skip" }
+var LS = "ictproto_v1";
+var store = load();
 
-var currentBldg = CONFIG.buildings[0].id;
-var currentGroup = null;
+function load(){
+  try{
+    var s = JSON.parse(localStorage.getItem(LS));
+    if(s && typeof s === "object") return s;
+  }catch(e){}
+  return { session:{ rounders:[], bldg:null, group:null }, prevGroup:{}, records:{} };
+}
+function save(){ try{ localStorage.setItem(LS, JSON.stringify(store)); }catch(e){} }
 
 function $(id){ return document.getElementById(id); }
 function el(t,c,x){ var e=document.createElement(t); if(c)e.className=c; if(x!=null)e.textContent=x; return e; }
 
-function loadPrev(){ try{ return JSON.parse(localStorage.getItem(LS_PREV))||{}; }catch(e){ return {}; } }
-function savePrev(o){ localStorage.setItem(LS_PREV, JSON.stringify(o)); }
-function loadState(){ try{ return JSON.parse(localStorage.getItem(LS_STATE))||{}; }catch(e){ return {}; } }
-function saveState(o){ localStorage.setItem(LS_STATE, JSON.stringify(o)); }
+var view = "place";      // "place" | "record"
+var currentPlace = null; // {id,label,kind}
 
-function bldgOf(id){ return CONFIG.buildings.find(function(b){ return b.id===id; }); }
+/* ================= データ ================= */
+function bldgOf(id){
+  for(var i=0;i<CONFIG.buildings.length;i++) if(CONFIG.buildings[i].id===id) return CONFIG.buildings[i];
+  return CONFIG.buildings[0];
+}
+function needsOrganisms(kind){ return kind === "ward"; }
 
-/* ---------- 次に来るはずの組（前回の次） ---------- */
-function nextGroupFor(bldgId){
-  var groups = CONFIG.rotation.groups;
-  var prev = loadPrev()[bldgId];
-  if(!prev) return null;
-  var i = groups.indexOf(prev);
-  if(i<0) return null;
-  return groups[(i+1) % groups.length];
+function rec(id){
+  if(!store.records[id]) store.records[id] = { organisms:{}, consult:null, note:"", strokes:[], skip:false };
+  return store.records[id];
+}
+function hasRec(id){ return !!store.records[id]; }
+
+function requiredKeys(kind){
+  var keys = [];
+  if(needsOrganisms(kind)) CONFIG.organisms.forEach(function(o){ keys.push({type:"org", id:o.id, short:o.short||o.label}); });
+  CONFIG.incidents.forEach(function(i){ keys.push({type:"inc", id:i.id, short:i.short||i.label}); });
+  return keys;
+}
+function missingOf(id, kind){
+  var r = store.records[id];
+  var out = [];
+  requiredKeys(kind).forEach(function(k){
+    if(!r) { out.push(k); return; }
+    if(k.type==="org" && r.organisms[k.id]===undefined) out.push(k);
+    if(k.type==="inc" && !r.consult) out.push(k);
+  });
+  return out;
+}
+function stateOf(id, kind){
+  var r = store.records[id];
+  if(!r) return "";
+  if(r.skip) return "skip";
+  var done = missingOf(id,kind).length===0 && r.strokes.length>0;
+  if(done) return "done";
+  var touched = Object.keys(r.organisms).length>0 || r.consult || r.note || r.strokes.length>0;
+  return touched ? "progress" : "";
+}
+function markLabel(s){
+  return s==="progress" ? "途中" : s==="done" ? "済み ✓" : s==="skip" ? "スキップ" : "";
+}
+function placesOf(bldgId, group){
+  var b = bldgOf(bldgId), out = [];
+  b.wards.forEach(function(w){ out.push({ id:w.id, label:w.label, kind:"ward" }); });
+  (b.rotationAreas[group]||[]).forEach(function(a){
+    out.push({ id:a.id, label:(a.code?a.code+" ":"")+a.label, kind:"area" });
+  });
+  return out;
+}
+function prevValue(placeId, orgId){
+  var h = store.prev && store.prev[placeId];
+  return h && h[orgId]!==undefined ? h[orgId] : null;
 }
 
-/* ---------- ヘッダー：館・組 ---------- */
+/* ================= ヘッダー ================= */
 function renderHeader(){
-  $("rounderTag").textContent = "ラウンド者: " + CONFIG.rounders.slice(0,3).join("・");
-
-  var bRow = $("bldgRow"); bRow.innerHTML="";
-  CONFIG.buildings.forEach(function(b){
-    var btn = el("button","selbtn"+(b.id===currentBldg?" on":""), b.label);
-    btn.type="button";
-    btn.addEventListener("click",function(){
-      currentBldg = b.id; currentGroup = null;
-      renderHeader(); renderGroups(); renderWards(); renderAreas(); updateFooter();
-    });
-    bRow.appendChild(btn);
-  });
-
-  renderGroups();
-}
-function renderGroups(){
-  var gRow = $("groupRow"); gRow.innerHTML="";
-  var groups = CONFIG.rotation.groups;
-  var prev = loadPrev()[currentBldg];
-  var suggested = nextGroupFor(currentBldg);
-
-  groups.forEach(function(g){
-    var btn = el("button","selbtn"+(g===currentGroup?" on":""), g);
-    btn.type="button";
-    btn.addEventListener("click",function(){
-      currentGroup = g;
-      var p = loadPrev(); p[currentBldg]=g; savePrev(p);
-      renderGroups(); renderAreas();
-    });
-    gRow.appendChild(btn);
-  });
-
-  var tag = el("span","prevtag");
-  if(prev){
-    tag.textContent = "前回: " + prev + (suggested ? "（次は " + suggested + " のはず）" : "");
+  var h = $("hrow"); h.innerHTML="";
+  var s = store.session;
+  if(view==="place"){
+    h.appendChild(el("span","hplace", s.bldg ? bldgOf(s.bldg).label : "未設定"));
+    if(s.group) h.appendChild(el("span","hgrp","組 "+s.group));
+    h.appendChild(el("span","hspace"));
+    var g = el("button","gear","⚙"); g.type="button";
+    g.setAttribute("aria-label","ラウンドの設定を開く");
+    g.addEventListener("click", openSetup);
+    h.appendChild(g);
+    $("hsub").textContent = s.rounders.length ? "ラウンド者: "+s.rounders.join("・") : "ラウンド者が未選択です";
   } else {
-    tag.textContent = "前回の記録なし";
+    var back = el("button","backbtn","← 場所選択"); back.type="button";
+    back.addEventListener("click", function(){ view="place"; render(); });
+    h.appendChild(back);
+    h.appendChild(el("span","hplace", currentPlace.label));
+    h.appendChild(el("span","hspace"));
+    var req = requiredKeys(currentPlace.kind).length;
+    var miss = missingOf(currentPlace.id, currentPlace.kind).length;
+    h.appendChild(el("span","hcount",(req-miss)+" / "+req));
+    $("hsub").textContent = (store.session.bldg? bldgOf(store.session.bldg).label : "") +
+      (currentPlace.kind==="area" ? "　組 "+store.session.group+"（菌の記録なし）" : "") +
+      "　ラウンド者: " + store.session.rounders.join("・");
   }
-  gRow.appendChild(tag);
-
-  if(!currentGroup && suggested) currentGroup = suggested;
-  if(!currentGroup) currentGroup = groups[0];
 }
 
-/* ---------- 病棟グリッド ---------- */
-var STATE_ORDER = ["", "progress", "done", "skip"];
-function cycleState(id){
-  var st = loadState();
-  var cur = st[id] || "";
-  var idx = (STATE_ORDER.indexOf(cur)+1) % STATE_ORDER.length;
-  if(STATE_ORDER[idx]==="") delete st[id]; else st[id]=STATE_ORDER[idx];
-  saveState(st);
-  return st[id] || "";
-}
-function markLabel(state){
-  if(state==="progress") return "途中";
-  if(state==="done") return "済み ✓";
-  if(state==="skip") return "スキップ";
-  return "";
-}
+/* ================= 場所選択 ================= */
+function renderPlace(){
+  var m = $("main"); m.innerHTML="";
+  var s = store.session;
+  if(!s.bldg || !s.group || !s.rounders.length){
+    var c = el("div","card");
+    c.appendChild(el("div",null,"右上の ⚙ から、ラウンド者・館・組を選んでください。"));
+    m.appendChild(c);
+    $("foot").innerHTML="";
+    return;
+  }
+  var b = bldgOf(s.bldg);
 
-function renderWards(){
-  var b = bldgOf(currentBldg);
-  var host = $("wardGrid");
-  host.style.gridTemplateColumns = "repeat("+b.gridCols+",1fr)";
-  host.innerHTML = "";
-  var maxRow = Math.max.apply(null, b.wards.map(function(w){return w.row;}));
-  var state = loadState();
-
-  for(var r=1; r<=maxRow; r++){
-    for(var c=1; c<=b.gridCols; c++){
-      var w = b.wards.find(function(x){ return x.row===r && x.col===c; });
-      if(!w){ host.appendChild(el("div","wcell empty")); continue; }
-      var st = state[w.id] || "";
+  var sec1 = el("div","section");
+  sec1.appendChild(el("h2",null,"病棟（毎回まわる）"));
+  var card1 = el("div","card");
+  var grid = el("div","wgrid");
+  grid.style.gridTemplateColumns = "repeat("+b.gridCols+",1fr)";
+  var maxRow = Math.max.apply(null, b.wards.map(function(w){ return w.row; }));
+  for(var r=1;r<=maxRow;r++){
+    for(var c=1;c<=b.gridCols;c++){
+      var w=null;
+      for(var i=0;i<b.wards.length;i++) if(b.wards[i].row===r && b.wards[i].col===c){ w=b.wards[i]; break; }
+      if(!w){ grid.appendChild(el("div","wcell empty")); continue; }
+      var st = stateOf(w.id,"ward");
       var cell = el("div","wcell"+(st?" "+st:""));
       cell.appendChild(el("div",null,w.label));
-      var mk = el("div","mark", markLabel(st));
-      cell.appendChild(mk);
-      cell.dataset.id = w.id;
-      cell.addEventListener("click",function(){
-        var id=this.dataset.id, ns=cycleState(id);
-        this.className = "wcell"+(ns?" "+ns:"");
-        this.querySelector(".mark").textContent = markLabel(ns);
-        updateFooter();
-      });
-      host.appendChild(cell);
+      cell.appendChild(el("div","mark",markLabel(st)));
+      (function(place){
+        cell.addEventListener("click", function(){ openRecord(place); });
+      })({ id:w.id, label:w.label, kind:"ward" });
+      grid.appendChild(cell);
     }
   }
-}
+  card1.appendChild(grid); sec1.appendChild(card1); m.appendChild(sec1);
 
-/* ---------- 4週1巡エリア ---------- */
-function renderAreas(){
-  var b = bldgOf(currentBldg);
-  var host = $("areaGrid");
-  host.innerHTML = "";
-  var state = loadState();
-
+  var sec2 = el("div","section");
+  sec2.appendChild(el("h2",null,"4週に1回まわるエリア（今週の組だけ有効・相談のみ記録）"));
+  var ag = el("div","agrid");
   CONFIG.rotation.groups.forEach(function(g){
-    var isToday = (g===currentGroup);
-    var grp = el("div","agroup"+(isToday?" today":" off"));
-    var nameRow = el("div","gname");
-    nameRow.appendChild(document.createTextNode("組 "+g));
-    if(isToday) nameRow.appendChild(el("span","today-badge","本日"));
-    grp.appendChild(nameRow);
-
-    (b.rotationAreas[g]||[]).forEach(function(a){
-      var st = state[a.id] || "";
-      var cell = el("div","acell"+(st?" "+st:""), (a.code?a.code+" ":"")+a.label);
-      cell.dataset.id = a.id;
-      if(isToday){
-        cell.addEventListener("click",function(){
-          var id=this.dataset.id, ns=cycleState(id);
-          this.className = "acell"+(ns?" "+ns:"");
-          this.textContent = (a.code?a.code+" ":"")+a.label + (ns?"　"+markLabel(ns):"");
-          updateFooter();
-        });
+    var today = (g===s.group);
+    var grp = el("div","agroup"+(today?" today":" off"));
+    var nm = el("div","gname");
+    nm.appendChild(document.createTextNode("組 "+g));
+    if(today) nm.appendChild(el("span","badge","本日"));
+    grp.appendChild(nm);
+    var list = b.rotationAreas[g]||[];
+    if(!list.length) grp.appendChild(el("div","mark","（該当なし）"));
+    list.forEach(function(a){
+      var label = (a.code?a.code+" ":"")+a.label;
+      var st = stateOf(a.id,"area");
+      var cell = el("div","acell"+(st?" "+st:""));
+      cell.appendChild(document.createTextNode(label));
+      if(st) cell.appendChild(el("span","amark",markLabel(st)));
+      if(today){
+        cell.addEventListener("click", function(){ openRecord({ id:a.id, label:label, kind:"area" }); });
       }
       grp.appendChild(cell);
     });
-    if(!(b.rotationAreas[g]||[]).length) grp.appendChild(el("div","mark","（該当なし）"));
-    host.appendChild(grp);
+    ag.appendChild(grp);
   });
+  sec2.appendChild(ag); m.appendChild(sec2);
+
+  var lg = el("div","legend");
+  [["","未着手"],["progress","途中"],["done","済み"],["skip","スキップ"]].forEach(function(p){
+    var sp = el("span");
+    var ic = el("i"); if(p[0]) ic.className = p[0];
+    sp.appendChild(ic); sp.appendChild(document.createTextNode(p[1]));
+    lg.appendChild(sp);
+  });
+  m.appendChild(lg);
+
+  var all = placesOf(s.bldg, s.group);
+  var done=0, skip=0;
+  all.forEach(function(p){
+    var st = stateOf(p.id,p.kind);
+    if(st==="done") done++; if(st==="skip") skip++;
+  });
+  var f = $("foot"); f.innerHTML="";
+  f.appendChild(el("span","ftext", b.label+"　済み "+done+" ／ スキップ "+skip+" ／ 全 "+all.length));
 }
 
-/* ---------- 進捗・リセット ---------- */
-function allIdsOf(bldgId){
-  var b = bldgOf(bldgId);
-  var ids = b.wards.map(function(w){return w.id;});
-  Object.keys(b.rotationAreas).forEach(function(g){
-    b.rotationAreas[g].forEach(function(a){ ids.push(a.id); });
+/* ================= 記録 ================= */
+function openRecord(place){ currentPlace = place; view="record"; render(); window.scrollTo(0,0); }
+
+function renderRecord(){
+  var m = $("main"); m.innerHTML="";
+  var p = currentPlace, r = rec(p.id);
+  var wrap = el("div","rec2");
+  var colL = el("div"), colR = el("div");
+
+  if(needsOrganisms(p.kind)){
+    var sec = el("div","section");
+    sec.appendChild(el("h2",null,"菌の人数"));
+    var card = el("div","card");
+    CONFIG.organisms.forEach(function(o){
+      card.appendChild(organismRow(o, r, p));
+    });
+    sec.appendChild(card); colL.appendChild(sec);
+  }
+
+  var isec = el("div","section");
+  isec.appendChild(el("h2",null,"相談"));
+  var icard = el("div","card");
+  CONFIG.incidents.forEach(function(inc){ icard.appendChild(consultRow(inc, r, p)); });
+  isec.appendChild(icard); colL.appendChild(isec);
+
+  // 備考（折りたたみ）
+  var nsec = el("div","section");
+  nsec.appendChild(el("h2",null,"備考"));
+  var ncard = el("div","card");
+  var noteBox = el("div");
+  var nb = el("button","foldbtn"+(r.note?" filled":""));
+  nb.type="button";
+  function nbLabel(){
+    nb.innerHTML="";
+    if(r.note){
+      nb.className="foldbtn filled";
+      nb.appendChild(document.createTextNode("備考あり（タップで編集）"));
+      nb.appendChild(el("span","peek", r.note));
+    }else{
+      nb.className="foldbtn";
+      nb.appendChild(document.createTextNode("＋ 備考を追加"));
+    }
+  }
+  nbLabel();
+  var nta = document.createElement("textarea");
+  nta.placeholder = "気づいたことを入力";
+  nta.value = r.note || "";
+  nta.style.display = "none";
+  nb.addEventListener("click", function(){
+    nb.style.display="none"; nta.style.display="block"; nta.focus();
   });
-  return ids;
-}
-function updateFooter(){
-  var ids = allIdsOf(currentBldg);
-  var state = loadState();
-  var done=0, skip=0;
-  ids.forEach(function(id){
-    if(state[id]==="done") done++;
-    if(state[id]==="skip") skip++;
+  nta.addEventListener("input", function(){ r.note = nta.value; save(); });
+  nta.addEventListener("blur", function(){
+    nta.style.display="none"; nb.style.display="block"; nbLabel();
+    renderHeader();
   });
-  $("progText").textContent = bldgOf(currentBldg).label + "　済み "+done+" ／ スキップ "+skip+" ／ 全 "+ids.length;
+  noteBox.appendChild(nb); noteBox.appendChild(nta);
+  ncard.appendChild(noteBox); nsec.appendChild(ncard); colR.appendChild(nsec);
+
+  // 署名
+  var ssec = el("div","section");
+  ssec.appendChild(el("h2",null,"確認サイン"));
+  var scard = el("div","card");
+  var sb = el("button","signbtn"+(r.strokes.length?" done":"")); sb.type="button";
+  if(r.strokes.length){ sb.innerHTML = signSvgOf(r); }
+  else sb.textContent = "タップして署名";
+  sb.addEventListener("click", function(){ openSign(); });
+  var sm = el("div","signmeta", r.strokes.length ? r.strokes.length+"画 / "+kbOf(r)+" KB（タップで書き直し）" : "未記入");
+  scard.appendChild(sb); scard.appendChild(sm);
+  ssec.appendChild(scard); colR.appendChild(ssec);
+
+  wrap.appendChild(colL); wrap.appendChild(colR);
+  m.appendChild(wrap);
+
+  var f = $("foot"); f.innerHTML="";
+  var skipBtn = el("button","btn", r.skip ? "スキップを取り消す" : "本日は回らない");
+  skipBtn.type="button";
+  skipBtn.addEventListener("click", function(){
+    r.skip = !r.skip; save(); render();
+    toast(r.skip ? "スキップにしました" : "スキップを取り消しました");
+  });
+  f.appendChild(skipBtn);
+  var next = el("button","primary","場所選択へ戻る"); next.type="button";
+  next.addEventListener("click", tryFinish);
+  f.appendChild(next);
 }
-$("resetBtn").addEventListener("click",function(){
-  if(!confirm(bldgOf(currentBldg).label+" の状態をリセットします。よろしいですか？")) return;
-  var state = loadState();
-  allIdsOf(currentBldg).forEach(function(id){ delete state[id]; });
-  saveState(state);
-  renderWards(); renderAreas(); updateFooter();
-  toast("リセットしました");
+
+function organismRow(o, r, p){
+  var row = el("div","row simple");
+  var val = r.organisms[o.id];
+  if(val===undefined) row.className += " pending";
+  row.dataset.key = "org:"+o.id;
+
+  var lab = el("div","rlabel");
+  lab.appendChild(el("span",null,o.label));
+  var pv = prevValue(p.id, o.id);
+  lab.appendChild(el("span","prev", pv===null ? "前回 ―" : "前回 "+pv));
+  row.appendChild(lab);
+
+  var chips = el("div","chips");
+  CONFIG.chips.values.forEach(function(v){
+    var b = el("button","chip"+(val===v?" on":""), String(v)); b.type="button";
+    b.addEventListener("click", function(){
+      r.organisms[o.id]=v; save();
+      Array.prototype.forEach.call(chips.children,function(x,i){
+        x.classList.toggle("on", i<CONFIG.chips.values.length && CONFIG.chips.values[i]===v);
+      });
+      row.classList.remove("pending","flash");
+      over.classList.remove("show"); chips.style.display="flex";
+      renderHeader();
+    });
+    chips.appendChild(b);
+  });
+  var ob = el("button","chip"+(val>=CONFIG.chips.overflowMin?" on":""), CONFIG.chips.overflowLabel);
+  ob.type="button";
+  ob.addEventListener("click", function(){
+    chips.style.display="none"; over.classList.add("show"); over.querySelector("input").focus();
+  });
+  chips.appendChild(ob);
+  row.appendChild(chips);
+
+  var over = el("div","over");
+  var back = el("button","back","← 戻る"); back.type="button";
+  back.addEventListener("click", function(){ over.classList.remove("show"); chips.style.display="flex"; });
+  var inp = document.createElement("input");
+  inp.type="number"; inp.inputMode="numeric"; inp.min=String(CONFIG.chips.overflowMin);
+  inp.placeholder=CONFIG.chips.overflowMin+"以上";
+  if(val>=CONFIG.chips.overflowMin) inp.value=String(val);
+  inp.addEventListener("input", function(){
+    var n=parseInt(inp.value,10);
+    if(!isNaN(n)&&n>=CONFIG.chips.overflowMin){
+      r.organisms[o.id]=n; save(); row.classList.remove("pending","flash"); renderHeader();
+    }
+  });
+  over.appendChild(back); over.appendChild(inp); over.appendChild(el("span",null,"人"));
+  if(val>=CONFIG.chips.overflowMin){ over.classList.add("show"); chips.style.display="none"; }
+  row.appendChild(over);
+  return row;
+}
+
+function consultRow(inc, r, p){
+  var row = el("div","row");
+  if(!r.consult) row.className += " pending";
+  row.dataset.key = "inc:"+inc.id;
+  row.appendChild(el("div","rlabel", inc.label));
+
+  var chips = el("div","chips");
+  var no = el("button","chip"+(r.consult&&!r.consult.has?" on":""),"無");
+  var yes = el("button","chip yes"+(r.consult&&r.consult.has?" on":""),"有");
+  no.type="button"; yes.type="button";
+  chips.appendChild(no); chips.appendChild(yes);
+  row.appendChild(chips);
+
+  var det = el("div","detail"+(r.consult&&r.consult.has?" show":""));
+  var ta = document.createElement("textarea");
+  ta.placeholder = "相談の内容";
+  ta.value = (r.consult && r.consult.detail) || "";
+  ta.addEventListener("input", function(){ if(r.consult) r.consult.detail = ta.value; save(); });
+  det.appendChild(ta); row.appendChild(det);
+
+  no.addEventListener("click", function(){
+    r.consult = { has:false, detail:"" }; save();
+    no.classList.add("on"); yes.classList.remove("on"); det.classList.remove("show");
+    row.classList.remove("pending","flash"); renderHeader();
+  });
+  yes.addEventListener("click", function(){
+    r.consult = { has:true, detail:ta.value }; save();
+    yes.classList.add("on"); no.classList.remove("on"); det.classList.add("show"); ta.focus();
+    row.classList.remove("pending","flash"); renderHeader();
+  });
+  return row;
+}
+
+function tryFinish(){
+  var p = currentPlace, r = rec(p.id);
+  if(r.skip){ view="place"; render(); return; }
+  var miss = missingOf(p.id, p.kind);
+  if(miss.length){
+    var row = document.querySelector('[data-key="'+(miss[0].type)+':'+miss[0].id+'"]');
+    if(row){
+      row.scrollIntoView({block:"center",behavior:"smooth"});
+      row.classList.add("flash");
+      setTimeout(function(){ row.classList.remove("flash"); },1600);
+    }
+    toast(miss.length+"件が未入力です（"+miss.map(function(k){return k.short;}).join("、")+"）", true);
+    return;
+  }
+  if(!r.strokes.length){ toast("確認サインが未記入です", true); openSign(); return; }
+  view="place"; render();
+  toast(p.label+" を記録しました");
+}
+
+/* ================= 署名 ================= */
+var big=$("signbig"), smhint=$("smhint"), drawing=null, signTarget=null;
+function pt(e){ var b=big.getBoundingClientRect(); return [Math.round(e.clientX-b.left),Math.round(e.clientY-b.top)]; }
+function pathData(a){ if(!a.length) return ""; var d="M"+a[0][0]+" "+a[0][1];
+  for(var i=1;i<a.length;i++) d+="L"+a[i][0]+" "+a[i][1]; return d; }
+function sw(){ return parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sign-w"))||3; }
+function bboxOf(strokes){
+  var x1=Infinity,y1=Infinity,x2=-Infinity,y2=-Infinity;
+  strokes.forEach(function(s){ s.forEach(function(p){
+    if(p[0]<x1)x1=p[0]; if(p[0]>x2)x2=p[0];
+    if(p[1]<y1)y1=p[1]; if(p[1]>y2)y2=p[1];
+  });});
+  if(!isFinite(x1)) return null;
+  var pad=sw()*2+4;
+  return { x:Math.round(x1-pad), y:Math.round(y1-pad),
+           w:Math.max(1,Math.round(x2-x1+pad*2)), h:Math.max(1,Math.round(y2-y1+pad*2)) };
+}
+function signSvgOf(r){
+  var b = bboxOf(r.strokes); if(!b) return "";
+  var body = r.strokes.map(function(s){ return '<path d="'+pathData(s)+'"/>'; }).join("");
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="'+b.x+' '+b.y+' '+b.w+' '+b.h+'">'+
+    '<g fill="none" stroke="#1A252D" stroke-width="'+sw()+'" stroke-linecap="round" stroke-linejoin="round">'+
+    body+'</g></svg>';
+}
+function kbOf(r){ var s=signSvgOf(r); return s ? (new TextEncoder().encode(s).length/1024).toFixed(1) : "0.0"; }
+
+function openSign(){
+  signTarget = rec(currentPlace.id);
+  while(big.firstChild) big.removeChild(big.firstChild);
+  signTarget.strokes.forEach(function(s){
+    var p=document.createElementNS("http://www.w3.org/2000/svg","path");
+    p.setAttribute("fill","none"); p.setAttribute("stroke","#1A252D");
+    p.setAttribute("stroke-width",String(sw()));
+    p.setAttribute("stroke-linecap","round"); p.setAttribute("stroke-linejoin","round");
+    p.setAttribute("d", pathData(s));
+    big.appendChild(p);
+  });
+  smhint.classList.toggle("hide", signTarget.strokes.length>0);
+  $("smPlace").textContent = currentPlace.label;
+  $("signmode").classList.add("show");
+  smInfo();
+}
+function smInfo(){
+  var n = signTarget ? signTarget.strokes.length : 0;
+  var b = signTarget ? bboxOf(signTarget.strokes) : null;
+  $("sminfo").textContent = n ? n+"画 / "+kbOf(signTarget)+" KB / 範囲 "+b.w+"×"+b.h : "";
+}
+big.addEventListener("touchstart",function(e){ e.preventDefault(); },{passive:false});
+big.addEventListener("touchmove",function(e){ e.preventDefault(); },{passive:false});
+big.addEventListener("pointerdown",function(e){
+  if(!signTarget) return;
+  e.preventDefault(); big.setPointerCapture(e.pointerId);
+  var node=document.createElementNS("http://www.w3.org/2000/svg","path");
+  node.setAttribute("fill","none"); node.setAttribute("stroke","#1A252D");
+  node.setAttribute("stroke-width",String(sw()));
+  node.setAttribute("stroke-linecap","round"); node.setAttribute("stroke-linejoin","round");
+  big.appendChild(node);
+  var arr=[pt(e)];
+  signTarget.strokes.push(arr);
+  drawing={ arr:arr, node:node };
+  smhint.classList.add("hide"); smInfo();
+});
+big.addEventListener("pointermove",function(e){
+  if(!drawing) return; e.preventDefault();
+  var p=pt(e), l=drawing.arr[drawing.arr.length-1];
+  if(Math.abs(p[0]-l[0])+Math.abs(p[1]-l[1])<2) return;
+  drawing.arr.push(p); drawing.node.setAttribute("d", pathData(drawing.arr));
+});
+function endStroke(){
+  if(!drawing) return;
+  if(drawing.arr.length===1){ drawing.arr.push([drawing.arr[0][0]+1, drawing.arr[0][1]]);
+    drawing.node.setAttribute("d", pathData(drawing.arr)); }
+  drawing=null; save(); smInfo();
+}
+big.addEventListener("pointerup",endStroke);
+big.addEventListener("pointercancel",endStroke);
+$("smclear").addEventListener("click",function(){
+  if(!signTarget) return;
+  signTarget.strokes=[]; save();
+  while(big.firstChild) big.removeChild(big.firstChild);
+  smhint.classList.remove("hide"); smInfo();
+});
+$("smdone").addEventListener("click",function(){
+  $("signmode").classList.remove("show");
+  save(); render();
 });
 
+/* ================= 設定（①） ================= */
+function openSetup(){
+  var s = store.session;
+  $("setupDate").textContent = new Date().toLocaleDateString("ja-JP");
+
+  var rp = $("rounderPick"); rp.innerHTML="";
+  CONFIG.rounders.forEach(function(name){
+    var b = el("button","pick"+(s.rounders.indexOf(name)>=0?" on":""), name); b.type="button";
+    b.addEventListener("click", function(){
+      var i = s.rounders.indexOf(name);
+      if(i>=0) s.rounders.splice(i,1);
+      else{
+        if(s.rounders.length>=3){ toast("ラウンド者は3名までです", true); return; }
+        s.rounders.push(name);
+      }
+      save(); openSetup();
+    });
+    rp.appendChild(b);
+  });
+
+  var bp = $("bldgPick"); bp.innerHTML="";
+  CONFIG.buildings.forEach(function(bd){
+    var b = el("button","pick"+(s.bldg===bd.id?" on":""), bd.label); b.type="button";
+    b.addEventListener("click", function(){
+      s.bldg=bd.id; s.group=null; save(); openSetup();
+    });
+    bp.appendChild(b);
+  });
+
+  var gp = $("groupPick"); gp.innerHTML="";
+  var suggested = null;
+  if(s.bldg){
+    var prev = store.prevGroup[s.bldg];
+    if(prev){
+      var gs = CONFIG.rotation.groups, i = gs.indexOf(prev);
+      if(i>=0) suggested = gs[(i+1)%gs.length];
+    }
+  }
+  CONFIG.rotation.groups.forEach(function(g){
+    var b = el("button","pick"+(s.group===g?" on":""), g + (g===suggested&&s.group!==g ? " ◦" : ""));
+    b.type="button"; b.disabled = !s.bldg;
+    b.addEventListener("click", function(){ s.group=g; save(); openSetup(); });
+    gp.appendChild(b);
+  });
+
+  var pv = store.prevGroup[s.bldg];
+  $("prevTag").textContent = !s.bldg ? "館を選ぶと、前回の組が表示されます"
+    : pv ? "前回この館でまわった組: "+pv+(suggested?"（◦ が次の組）":"")
+         : "この館の記録はまだありません";
+
+  $("setup").classList.add("show");
+}
+$("setupDone").addEventListener("click", function(){
+  var s = store.session;
+  if(!s.rounders.length){ toast("ラウンド者を選んでください", true); return; }
+  if(!s.bldg){ toast("館を選んでください", true); return; }
+  if(!s.group){ toast("組を選んでください", true); return; }
+  store.prevGroup[s.bldg] = s.group;
+  save();
+  $("setup").classList.remove("show");
+  view="place"; render();
+});
+$("resetAll").addEventListener("click", function(){
+  if(!confirm("記録を全部消します。よろしいですか？")) return;
+  store.records = {}; save();
+  $("setup").classList.remove("show");
+  view="place"; render();
+  toast("記録を消しました");
+});
+
+/* ================= 共通 ================= */
 var toastT=null;
-function toast(msg){
-  var t=$("toast"); t.textContent=msg; t.classList.add("show");
-  clearTimeout(toastT); toastT=setTimeout(function(){ t.classList.remove("show"); },2000);
+function toast(msg, isAlert){
+  var t=$("toast"); t.textContent=msg;
+  t.className = "show" + (isAlert?" alert":"");
+  clearTimeout(toastT); toastT=setTimeout(function(){ t.className=""; },2800);
+}
+function render(){
+  renderHeader();
+  if(view==="place") renderPlace(); else renderRecord();
 }
 
-renderHeader();
-renderWards();
-renderAreas();
-updateFooter();
+render();
+if(!store.session.bldg || !store.session.group || !store.session.rounders.length) openSetup();
 </script>
 </body>
 </html>
